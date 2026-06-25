@@ -16,18 +16,17 @@ _Last updated: 2026-06-25._
 - [x] Scaffold verified: `npm install` clean, `tsc --noEmit` clean, `next build` succeeds
 - [ ] _Not done tonight (correctly deferred):_ story-craft analysis, first skeleton, validation layer — see "Next session"
 
-**You can close the laptop here.** The scaffold and accountability docs are in place and committed. Nothing is half-finished.
+- [x] Built the input validation + prompt-injection defense layer (`src/lib/validation`), 12 passing unit tests
+- [x] Built the Claude input-classifier pass (`src/lib/safety`), tool-forced structured output (typechecks; not yet run live)
+
+**You can close the laptop here.** Everything is committed; nothing is half-finished. The deterministic safety layer is tested; the Claude classifier is built but unverified against the live API (needs a key).
 
 ---
 
 ## Next session — clear re-entry point
 
-Do these in order:
-
-1. **Build the input validation + prompt-injection defense layer** (`src/lib/validation`). This is foundational and **does not depend on the reference texts**, so it's the right thing to build while B-1 is outstanding. Deterministic per-field rules (allowlists, length caps, injection-pattern screen) + the field schema the wizard and generator share.
-2. **Story-craft analysis** → `STORY_CRAFT_NOTES.md`. **Only possible once you upload the reference texts** (see "Decisions / inputs I owe you"). This gates the first skeleton.
-
-_(Scaffold-boots check from the original plan is already done — see Tonight's session.)_
+1. **Story-craft analysis** → `STORY_CRAFT_NOTES.md`. **Only possible once you upload the reference texts** (B-1 below). This gates the first skeleton.
+2. If refs aren't ready, the ref-independent options are: (a) drop your `ANTHROPIC_API_KEY` in `.env.local` and I live-verify `moderateInput()` end to end; (b) build the symmetric **output-moderation pass** (layer 2) — same structure, takes the finished story.
 
 ---
 
@@ -46,3 +45,4 @@ None of these block next session's steps 1–2. B-1 blocks step 3.
 ## Running log
 
 - **2026-06-24/25** — Kickoff. Scope + stack decided and confirmed. Repo scaffolded, all tracking docs created, decisions logged. Held the craft analysis pending reference uploads (the brief's explicit gate before any skeleton work).
+- **2026-06-25** — Built the input-safety layer: deterministic validation + injection screen (`src/lib/validation`, 12 passing tests) and the Claude input-classifier pass (`src/lib/safety`, tool-forced structured output). Logged D-010 (structured output via forced tool call on SDK 0.68; migrate to `output_config.format` on SDK bump). Typecheck + build + tests all clean.

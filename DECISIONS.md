@@ -38,6 +38,12 @@ Dated record of every ambiguous call and the reasoning. Newest at the bottom of 
 
 ---
 
+### D-010 — Structured model output via forced tool call, not `output_config` (2026-06-25)
+**Decision:** The Claude classifier / moderation passes obtain schema-shaped output by **forcing a single tool call** (`tools` + `tool_choice`), not the newer `output_config.format` / `messages.parse()` API.
+**Why:** The installed `@anthropic-ai/sdk` (0.68.0) predates `output_config.format` and `messages.parse()`. Forced tool-calling is the canonical, stable structured-output mechanism on this SDK and guarantees the response matches the schema. When we bump the SDK, `moderateInput.ts` can migrate to `output_config.format` (noted in a code comment). Tests run on Node's built-in `node:test` via `tsx` (one devDep) — extensionless TS imports match Next's resolution, so no separate test framework is needed.
+
+---
+
 ## Open (waiting on James)
 
 ### D-007 — Working product name — OPEN

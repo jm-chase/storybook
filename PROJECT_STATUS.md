@@ -7,8 +7,10 @@ _Living document — updated every session. Last updated: 2026-06-25._
 - **Repo scaffold — verified.** Next.js (App Router) + TypeScript project structure, `package.json`, `tsconfig.json`, `next.config.mjs`, `.gitignore`, `.env.example`. Placeholder landing page renders the project framing. `npm install` clean (99 pkgs), `tsc --noEmit` clean, `next build` succeeds (Next 15.5.19).
 - **Tracking docs.** README, this file, DECISIONS, ACCOUNTABILITY, GUIDE — all seeded.
 - **Directory skeleton** for skeletons (`content/skeletons/`), illustration assets (`assets/illustrations/`), and generated output (`stories-output/`, gitignored).
+- **Input validation + prompt-injection defense layer** (`src/lib/validation/`) — deterministic per-field rules (Unicode letter allowlist, length + word caps, instruction-pattern screen), shared field-kind definitions, and a `validateInputs()` aggregator. **12 unit tests pass** (`npm test`), typecheck + build clean. This is the structural core of input safety: narrow fields physically can't carry an injection payload.
+- **Claude input-classifier pass** (`src/lib/safety/`) — `moderateInput()` runs validated free-text through `claude-opus-4-8` with forced-tool structured output; values are passed only inside a delimited data block and the system prompt treats them strictly as data. _Built and typechecks; **not yet run against the live API** (no key in `.env.local` tonight)._
 
-Nothing is wired end-to-end yet. No generation, no safety code, no PDF code, no wizard UI beyond the placeholder.
+Not yet wired end-to-end: no generation, no output-moderation pass (layer 2), no PDF code, no wizard UI beyond the placeholder.
 
 ## In Progress
 
@@ -16,8 +18,8 @@ Nothing is wired end-to-end yet. No generation, no safety code, no PDF code, no 
 
 ## Next up (see ACCOUNTABILITY.md for the ordered re-entry plan)
 
-1. Input validation + prompt-injection defense layer (`src/lib/validation`) — ref-independent, foundational, can start before the craft analysis.
-2. Story-craft analysis → `STORY_CRAFT_NOTES.md` — **blocked on reference-text upload** (see below).
+1. **Story-craft analysis** → `STORY_CRAFT_NOTES.md` — **blocked on reference-text upload** (B-1 below).
+2. Ref-independent options while B-1 is outstanding: (a) live-verify `moderateInput()` once a key is in `.env.local`; (b) build the symmetric **output-moderation pass** (`moderateOutput()`, layer 2) — same shape, takes the finished story text.
 
 ## BLOCKERS (non-code) — need James's input
 
