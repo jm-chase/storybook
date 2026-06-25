@@ -6,6 +6,10 @@
 # next.js
 /.next/
 /out/
+next-env.d.ts
+
+# typescript build artifacts
+*.tsbuildinfo
 
 # production
 /build
