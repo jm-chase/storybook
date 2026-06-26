@@ -10,4 +10,6 @@ A skeleton defines:
 
 The JSON schema derived from a skeleton's slots is what constrains generation (structured outputs) — the model can only return slot values, never free-form plot.
 
-_No skeletons written yet — gated on the story-craft analysis, which is gated on reference-text upload (PROJECT_STATUS B-1)._
+**Machine-readable skeletons live in `src/content/skeletons/` as typed TS modules** (D-013) — they're imported by the pipeline and renderer. The motif catalog is `src/content/motifs.ts`. This dir holds the human-facing doc.
+
+First skeleton: `the-big-new-thing` (ages 3–5, ref-free draft — see `STORY_CRAFT_NOTES.md` and D-012). Render a sample with `node --import tsx scripts/sample.ts`.

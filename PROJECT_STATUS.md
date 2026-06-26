@@ -9,8 +9,12 @@ _Living document — updated every session. Last updated: 2026-06-25._
 - **Directory skeleton** for skeletons (`content/skeletons/`), illustration assets (`assets/illustrations/`), and generated output (`stories-output/`, gitignored).
 - **Input validation + prompt-injection defense layer** (`src/lib/validation/`) — deterministic per-field rules (Unicode letter allowlist, length + word caps, instruction-pattern screen), shared field-kind definitions, and a `validateInputs()` aggregator. **12 unit tests pass** (`npm test`), typecheck + build clean. This is the structural core of input safety: narrow fields physically can't carry an injection payload.
 - **Claude input-classifier pass** (`src/lib/safety/`) — `moderateInput()` runs validated free-text through `claude-opus-4-8` with forced-tool structured output; values are passed only inside a delimited data block and the system prompt treats them strictly as data. _Built and typechecks; **not yet run against the live API** (no key in `.env.local` tonight)._
+- **Motif model + first skeleton + deterministic renderer** (`src/content/`, `src/lib/skeleton/`):
+  - Curated motif catalog (`motifs.ts`): emotion, feeling, environment, lesson, sidekick — 6 options each, ages 3–5 (D-011).
+  - First skeleton `the-big-new-thing` (`skeletons/theBigNewThing.ts`) — a 6-beat procedural emotional-arc story (ref-free draft, D-012). Opening emotion → closing feeling arc; implicit lesson; authored environment phrases.
+  - `render.ts` — deterministic slot-fill, **no API call**, so we can preview story quality without a key. **6 render tests pass, including all 7,776 motif combinations rendering with zero unfilled slots.** Sample output looks good (see `scripts/sample.ts`).
 
-Not yet wired end-to-end: no generation, no output-moderation pass (layer 2), no PDF code, no wizard UI beyond the placeholder.
+Not yet wired end-to-end: no Claude personalization pass, no output-moderation pass (layer 2), no PDF code, no wizard UI beyond the placeholder.
 
 ## In Progress
 
@@ -18,8 +22,9 @@ Not yet wired end-to-end: no generation, no output-moderation pass (layer 2), no
 
 ## Next up (see ACCOUNTABILITY.md for the ordered re-entry plan)
 
-1. **Story-craft analysis** → `STORY_CRAFT_NOTES.md` — **blocked on reference-text upload** (B-1 below).
-2. Ref-independent options while B-1 is outstanding: (a) live-verify `moderateInput()` once a key is in `.env.local`; (b) build the symmetric **output-moderation pass** (`moderateOutput()`, layer 2) — same shape, takes the finished story text.
+1. **James's read on the first skeleton + motif model** — does the prose land? Are emotion/environment/lesson/feeling the right axes, and the curated values the right ones? This steers everything downstream.
+2. Then, ref-independent options: (a) Claude personalization pass (light wording smoothing within the fixed structure); (b) output-moderation pass (layer 2); (c) the wizard UI that drives motif selection.
+3. **Story-craft analysis** → `STORY_CRAFT_NOTES.md` — still blocked on reference-text upload (B-1); will revalidate the ref-free skeleton.
 
 ## BLOCKERS (non-code) — need James's input
 

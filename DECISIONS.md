@@ -44,6 +44,21 @@ Dated record of every ambiguous call and the reasoning. Newest at the bottom of 
 
 ---
 
+### D-011 — Motif inputs are curated picklists, not free-text (2026-06-25)
+**Decision:** The four motif dimensions James requested — **emotion, environment, lesson, feeling** — are implemented as curated selectable option lists, not free-text fields. They join **sidekick** (companion kind) as the steering dimensions; the parent also names the hero/sidekick and gives one detail via the existing free-text personalization slots.
+**Why:** Free-text motifs would reopen the prompt-injection surface and break the no-freeform-box rule. Curated picklists preserve theme-lock and still give large combinatorial range (6×6×6×6 = 1,296 motif combinations on the first skeleton; 7,776 including sidekick). emotion (opening) → feeling (closing) deliberately form an **emotional arc**; lesson is embodied **implicitly** via an authored fragment, not stated as a moral; environment carries authored place fragments.
+**Reversible if:** James wants a given motif as free-text — it would route through the validation + classifier layer like the name/detail fields. Flagged, not assumed.
+
+### D-012 — Proceeding without reference texts, by direction (2026-06-25)
+**Decision:** Drafted the first skeleton **before** the story-craft analysis, overriding the brief's hard gate.
+**Why:** James explicitly asked to proceed ref-free to baseline unguided output quality. The skeleton is marked as a ref-free draft (see `STORY_CRAFT_NOTES.md`); its `tradition` field is self-described. D-009 (structural mapping) stays open; the skeleton will be revisited once references arrive.
+
+### D-013 — Machine-readable content lives under `src/content/` (2026-06-25)
+**Decision:** Typed skeletons and the motif catalog live in `src/content/` (`motifs.ts`, `skeletons/*.ts`), not the root `content/` dir.
+**Why:** They're first-class TS modules imported by the pipeline (and later the wizard), so they belong inside `src/` for clean resolution and type-checking. Root `content/` keeps the human-facing README pointer. Deterministic renderer (`src/lib/skeleton/render.ts`) fills the skeleton with no model call — proves the skeleton stands alone and enables API-key-free preview/testing.
+
+---
+
 ## Open (waiting on James)
 
 ### D-007 — Working product name — OPEN
