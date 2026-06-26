@@ -59,6 +59,30 @@ Dated record of every ambiguous call and the reasoning. Newest at the bottom of 
 
 ---
 
+### D-014 — Pivot: illustration is the primary product; AI-locked reference art, not vector puppets (2026-06-25)
+**Decision:** The art system is the thing to get right first ("art > prose" — parents massage emotional rhythm + art to WtWTA quality; words carry rhythm, art carries story). Characters/environments/styles are **AI-generated then locked as persistent references**, not deterministic vector puppets. Prose polish is parked (references + James's authorship handle it later).
+**Why:** James wants freeform expressive character creation ("blond-haired spunky brown-eyed 4-yr-old boy" / "baby African elephant") in a chosen house style — only AI-reference generation delivers that range. Accepts that consistency becomes *engineered* (QA-gated), not deterministic, as the cost of expressive range.
+**Supersedes:** D-005 (flat-vector scene library / vector-puppet idea) for characters. AI-as-offline-asset-step still holds, now extended to style seeds.
+
+### D-015 — Character workflow: reference-image conditioning for the iterative loop; LoRA as premium (2026-06-25)
+**Decision:** describe (freeform) → moderate → generate model sheet → parent iterates → **lock** character/environment/style → generate each scene conditioned on all locks → output-moderate → lock book. Generation happens **once at creation time**, then frozen (preserves "static document" + stable print). Reference-image conditioning for the live loop; per-character LoRA offered as a premium "perfect consistency" path. (Veo is video — for print-first v1 we use a still-image model with character-reference; motion is a future digital-edition idea.)
+
+### D-016 — Own house styles only; never prompt protected names in production (2026-06-25)
+**Decision:** We build our own named house styles defined by aesthetic *attributes* and locked from our own generated style seeds. We do **not** prompt commercial models with third-party names (Ghibli, Dr. Seuss, Eric Carle, Harry Potter, LOTR, etc.). Starter taxonomy: Painted Wonder (watercolor), Storybook Ink (crosshatch), Torn & Bright (collage), Bright & Round (flat vector), Wobbly World (whimsical line). Dropped LOTR/HP (wrong lane + most protected); flagged Seuss/Carle as the riskiest registers to even gesture at.
+**Why:** Commercial kids' product = real copyright/trade-dress/trademark exposure on named styles. Owning our styles is both safer and better branding. See PROJECT_STATUS B-4 (legal review).
+
+### D-017 — Lesson-explicitness dial (2026-06-25)
+**Decision:** Add a "how hard the lesson lands" control, from *whisper* (carried by art + rhythm, never stated — WtWTA) to *spoken* (moral said outright). Default gentle. This is a key place the tool scaffolds parents who can't verbalize craft. Extends the lesson motif (D-011) with an explicitness axis.
+
+---
+
+## Pending confirmation (James to okay)
+
+### P-1 — Freeform character field reverses the "no freeform box" hard constraint
+The original brief's #1 rule was *no freeform prompt box, ever*. The freeform character description reverses it. Proposed reconciliation: **firewall** the description to the art pipeline only (never the plot; plot stays theme-locked), extract a validated name + trait tags for the words, and **moderate both ends** (Claude pass on the text incl. blocking real-people/celebrity/branded-character requests; image-moderation pass on every generated image + the finished book). Safety model shifts from "structural immunity" to "moderation + firewall." **Awaiting James's explicit okay before re-architecting the safety layer.**
+
+---
+
 ## Open (waiting on James)
 
 ### D-007 — Working product name — OPEN

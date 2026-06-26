@@ -42,14 +42,16 @@ None of these block next session's steps 1–2. B-1 blocks step 3.
 
 ---
 
-## Decision I'm waiting on from you (new — top priority)
+## Decisions I'm waiting on from you (top priority — art-first pivot)
 
-**Read the sample story and the motif model.** This is the "how much guidance does it need" checkpoint you asked for. Specifically:
-- Does the prose land for ages 3–5, or is it too plain / too twee / wrong rhythm?
-- Are **emotion · environment · lesson · feeling** the right steering axes? (I added **sidekick** alongside them and named the hero/sidekick/detail as free-text.)
-- Are the curated option *values* right (e.g. lessons phrased implicitly, environments, the emotion→feeling arc)?
+The 2026-06-25 pivot makes illustration the primary product (D-014). Before I build the art engine I need:
 
-Your answer steers generation, the wizard, and every future skeleton.
+1. **P-1 — okay the freeform character box?** It reverses your original "no freeform box" rule. Reconciliation: firewall it to the art pipeline (plot stays locked), extract a validated name/traits for the words, moderate both ends. Safety becomes "moderation + firewall," not "structurally impossible." Yes?
+2. **D-016 — okay own-house-styles-only?** We never prompt protected names (Ghibli/Seuss/Carle/HP/LOTR) in production — we build & lock our own styles. Legal-safe + better branding. Yes?
+3. **B-2 — want the image-stack shortlist next?** Scored on character-reference quality, commercial license + IP indemnification, print DPI, cost per book.
+4. **Next build:** prototype the describe→generate→iterate→lock character loop (needs vendor + key), or the vendor-agnostic studio shell + locked-style-seed system now?
+
+_(Earlier prose/motif read is now lower priority — prose is parked per your call.)_
 
 ---
 
@@ -57,4 +59,5 @@ Your answer steers generation, the wizard, and every future skeleton.
 
 - **2026-06-24/25** — Kickoff. Scope + stack decided and confirmed. Repo scaffolded, all tracking docs created, decisions logged. Held the craft analysis pending reference uploads (the brief's explicit gate before any skeleton work).
 - **2026-06-25** — Built the input-safety layer: deterministic validation + injection screen (`src/lib/validation`, 12 passing tests) and the Claude input-classifier pass (`src/lib/safety`, tool-forced structured output). Logged D-010 (structured output via forced tool call on SDK 0.68; migrate to `output_config.format` on SDK bump). Typecheck + build + tests all clean.
-- **2026-06-25 (cont.)** — At James's direction, proceeded ref-free (D-012) to baseline output quality. Built the motif model (emotion/environment/lesson/feeling + sidekick, curated picklists — D-011), the first skeleton `the-big-new-thing` (ages 3–5, emotional-arc, 6 beats), and a deterministic renderer (no API key needed). 18 tests pass total, including all 7,776 motif combinations. Logged D-011/012/013; added `STORY_CRAFT_NOTES.md` stub explaining the ref-free experiment. **Now waiting on James's read of the sample.**
+- **2026-06-25 (cont.)** — At James's direction, proceeded ref-free (D-012) to baseline output quality. Built the motif model (emotion/environment/lesson/feeling + sidekick, curated picklists — D-011), the first skeleton `the-big-new-thing` (ages 3–5, emotional-arc, 6 beats), and a deterministic renderer (no API key needed). 18 tests pass total, including all 7,776 motif combinations. Built the `/preview` browser book view with placeholder flat-vector art.
+- **2026-06-25 (pivot)** — James reframed: **art is the primary product**, prose parked. New direction: freeform AI-generated **locked persistent** character/environment/style (not vector puppets); reference-image loop + LoRA premium; **own house styles only** (legal); lesson-explicitness dial. Logged D-014–017; flagged P-1 (freeform reverses the no-freeform-box rule — pending James's okay) and new blockers B-2 (image stack, now top) + B-4 (legal review). Existing prose scaffold/preview stand as proof. **Now waiting on James: P-1, D-016, B-2 shortlist, and next-build choice.**

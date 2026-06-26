@@ -22,11 +22,16 @@ Not yet wired end-to-end: no Claude personalization pass, no output-moderation p
 
 - Nothing actively mid-edit. Clean stopping point.
 
-## Next up (see ACCOUNTABILITY.md for the ordered re-entry plan)
+## Direction pivot (2026-06-25)
 
-1. **James's read on the first skeleton + motif model** — does the prose land? Are emotion/environment/lesson/feeling the right axes, and the curated values the right ones? This steers everything downstream.
-2. Then, ref-independent options: (a) Claude personalization pass (light wording smoothing within the fixed structure); (b) output-moderation pass (layer 2); (c) the wizard UI that drives motif selection.
-3. **Story-craft analysis** → `STORY_CRAFT_NOTES.md` — still blocked on reference-text upload (B-1); will revalidate the ref-free skeleton.
+Product is now **art-first** (D-014). Prose is parked. The existing prose skeleton + browser preview stand as a working scaffold/proof, but the next phase is the **illustration engine**: freeform character → AI-generated locked persistent reference → house style → environment → storyboard → output-moderated → locked book → print. Safety re-architects around firewalled+moderated freeform input (P-1, pending James's okay).
+
+## Next up
+
+1. **James to confirm:** P-1 (freeform+firewall+moderate) and D-016 (own styles only).
+2. **Image-stack shortlist** (B-2) → pick a vendor.
+3. **Build:** prototype the describe→generate→iterate→**lock** character loop (needs vendor + key), OR the vendor-agnostic studio UI shell + locked-style-seed system now.
+4. (Deferred) Story-craft analysis (B-1) still revalidates pacing/structure once references arrive.
 
 ## BLOCKERS (non-code) — need James's input
 
@@ -37,11 +42,18 @@ The craft analysis (and therefore the first skeleton) can't start until you uplo
 - **Need from you:** the reference texts (paste, file drop, or paths).
 - **Until then:** I can proceed on the validation layer and scaffold, but not on skeletons.
 
-### B-2. Image-generation vendor + IP/licensing — needed before building the illustration library
-The flat-vector scene library is generated once as an offline asset step, then reused. Two open questions:
-- **Which image model/tool** generates the library.
-- **Commercial + print usage rights** for assets sold inside a paid product (and whether outputs are clean for that use).
-- **Options:** (a) pick a model now and validate its commercial terms; (b) defer — the pipeline reads from a static `assets/illustrations/` folder, so this can be decided in parallel without blocking code. Currently deferred (option b).
+### B-2. Image-generation stack — NOW THE TOP BLOCKER (reborn after the 2026-06-25 pivot, D-014/015)
+The product is now art-first: freeform character → AI-generated, locked, persistent reference art (D-014). Picking the image stack gates the character-lock prototype. What matters for us:
+- **Character-reference quality** (can it hold a custom character across scenes?)
+- **Commercial-use license + IP indemnification** (paid product — provider ToS + who owns/indemnifies outputs)
+- **Print resolution** (~300 DPI; native res + upscale path)
+- **Cost per book** (per-creation generation, not per-render)
+- **Next action:** James asked for / Claude to bring a shortlist scoring candidates on the above. Then pick → prototype the describe→generate→iterate→lock loop.
+
+### B-4. Legal review — own-styles + AI-art commercial use (NEW, 2026-06-25)
+- Confirm the **own-house-styles** posture (D-016) holds up: we never prompt protected names; do our generated style seeds stay clear of recognizable third-party trade dress?
+- Confirm **commercial usage rights + indemnification** for whichever image stack we pick (B-2).
+- COPPA still: parent-only, minimal data, **no child photos in v1** (confirmed by James; photo upload is a maybe-later).
 
 ### B-3. Working product name
 Folder/working name is `storybook` for now. Shortlist to bring you: Storyloom, Tucked In, Little Chapters, Pagewright, Bedtime Press. Your pick gets logged in DECISIONS.md (D-007, open).
