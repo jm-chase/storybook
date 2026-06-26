@@ -34,11 +34,14 @@ Product is now **art-first** (D-014). Prose is parked. The existing prose skelet
 
 ## Next up
 
-1. ✅ P-1 confirmed (freeform OK). ✅ Studio shell + style-seed system built (`/studio`). Shortlist delivered.
-2. **James to pick image stack (B-2):** safety-first (Adobe Firefly, IP-indemnified) vs iteration-feel (Google Gemini image) as primary; FLUX-LoRA as the premium "perfect-lock" tier. Verify current ToS/indemnity (B-4) before committing.
-3. **Then:** wire the chosen provider into the `ImageProvider` seam (replaces `placeholderProvider`) → real character generation + the input/output moderation passes (P-1) → generate & lock real **style seeds** into `houseStyles.ts` (currently empty `seedRefs`).
-4. **Then:** extend the studio — environment lock → emotional-arc + pacing + lesson-explicitness dial (D-017) → storyboard → book preview → PDF booklet export.
-5. (Deferred) Story-craft analysis (B-1) revalidates pacing/structure once references arrive.
+**A senior-eng pressure test was run 2026-06-25 — see `RISKS.md`.** Headline: we've built UI breadth but the central claim (character consistency across pages) is unvalidated and moderation is unbuilt. De-risk-first sequence:
+
+1. ✅ Image stack decided (D-019: both, Gemini-first then Firefly). ✅ Studio shell + style system built.
+2. **R-1 — consistency eval spike (Gemini):** prove/kill "same character across 6 varied scenes." + R-3 cost instrumentation. **This is the next build** (needs a Gemini key). Gate everything on it.
+3. **R-2 — moderation layer** (Claude input pass + image output pass + final-book pass). Hard gate before any real model usage.
+4. If consistency holds: full provider seam (`generateScene` multi-ref, R-5) + project/book data model + save (R-6).
+5. **Thinnest MVP:** one character, one style, one environment, 4–6 fixed storyboard pages, real+moderated+locked → one printable PDF. Then breadth (freeform scaffolding, Firefly, pacing/lesson dial, print hardening).
+6. (Deferred) Story-craft analysis (B-1) once references arrive.
 
 ## BLOCKERS (non-code) — need James's input
 

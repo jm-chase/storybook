@@ -82,6 +82,11 @@ Dated record of every ambiguous call and the reasoning. Newest at the bottom of 
 **Decision:** A freeform character-description field is allowed, reversing the original brief's "no freeform box, ever" rule. Reconciliation, now in force: **firewall** the description to the art pipeline only (never the plot; plot stays theme-locked); the hero's **name is a separate structured + validated field** shared with the story; **moderate both ends** (Claude pass on the description incl. blocking real-people/celebrity/branded-character requests; image-moderation pass on every generated image + the finished book). Safety model is now "moderation + firewall," not "structural immunity," for this field.
 **Implemented (structural half):** `src/lib/art/brief.ts` separates validated `name` from freeform `description`; studio uses two distinct fields. Content moderation (the Claude input pass + image output pass) wires in at generate time with the chosen provider + key.
 
+### D-019 — Image stack: both Gemini + Firefly, sequenced (not parallel) (2026-06-25)
+**Decision:** Ship-destination is **both** — Google Gemini image for the iterate-and-lock feel, Adobe Firefly (IP-indemnified) for production/legal cover, FLUX-LoRA as the premium "perfect-lock" tier. James said "do both."
+**Sequencing (senior-eng amendment):** do them **in series, not parallel.** (1) Integrate **Gemini first** purely to validate the core bet (character consistency across pages) + wire moderation end-to-end. (2) Only once that's proven, add **Firefly** for production/indemnity behind the same `ImageProvider` seam. Rationale: two integrations (two SDKs, two moderation behaviors, two sets of quirks) before the central claim is proven doubles surface for zero validated value. Both remain in the plan.
+**Verify (B-4):** current commercial terms + indemnity for both before committing spend.
+
 ---
 
 ## Open (waiting on James)
