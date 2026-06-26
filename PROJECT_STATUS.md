@@ -62,6 +62,11 @@ The product is now art-first: freeform character → AI-generated, locked, persi
 - **Cost per book** (per-creation generation, not per-render)
 - **Next action:** James asked for / Claude to bring a shortlist scoring candidates on the above. Then pick → prototype the describe→generate→iterate→lock loop.
 
+### B-6. Google billing — blocks the consistency spike (NEW, 2026-06-26)
+The spike ran and **validated the integration** (auth ✅, network ✅, SDK call ✅) but hit `HTTP 429, free_tier_requests limit: 0` — Gemini image generation (Nano Banana) is **paid-tier only**, and the key's Google project is on the free tier.
+- **Fix (no code change):** enable billing / pay-as-you-go on the project for this API key at aistudio.google.com, then re-run `npm run spike:consistency`.
+- **Status:** ⏳ waiting on James to enable billing. Code is ready; one command from results.
+
 ### B-4. Legal review — own-styles + AI-art commercial use (NEW, 2026-06-25)
 - Confirm the **own-house-styles** posture (D-016) holds up: we never prompt protected names; do our generated style seeds stay clear of recognizable third-party trade dress?
 - Confirm **commercial usage rights + indemnification** for whichever image stack we pick (B-2).

@@ -47,7 +47,7 @@ None of these block next session's steps 1–2. B-1 blocks step 3.
 1. **Add `GEMINI_API_KEY` to `.env.local`** (copy from `.env.example`), then run **`npm run spike:consistency`**. Open `spike-output/index.html` and eyeball whether the 6 scenes are the *same Mia*. (If your `ANTHROPIC_API_KEY` is also in `.env.local`, you'll get an automated same-character score too.) That one run de-risks the most important assumption in the product. ~$0.27.
 2. **FYI — image stack settled** (D-019): both, Gemini-first then Firefly, FLUX-LoRA premium. Cost is now known (~$0.039/image → <$1/book).
 
-**Want me to run the spike for you?** I can, the moment the key is in `.env.local` — just say go.
+**Update (2026-06-26):** key added, spike ran — **integration validated** (auth/network/SDK all good) but blocked on **B-6: Google billing**. Gemini image gen is paid-tier only; the key's project is free-tier (`429, limit: 0`). **Enable billing at aistudio.google.com, then I re-run** (`npm run spike:consistency`, ~$0.27). One command from real consistency images.
 
 ---
 
