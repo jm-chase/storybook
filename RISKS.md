@@ -55,6 +55,9 @@ We removed the prompt box for safety, then reintroduced a freeform box for art. 
 - **R-16. Long-running generation needs async + progress.** A full book is minutes of image calls — can't be an inline HTTP request. Needs progress streaming now, a job/queue when hosted. See `STACK_REVIEW.md` W-3.
 - **R-17. Specialized abuse/CSAM screening required.** A general "inappropriate?" classifier is not sufficient for child-character image generation. See `STACK_REVIEW.md` W-2 — hard gate with R-2.
 
+- **R-18. Multi-character persistence is unbuilt and unvalidated (2026-06-26).** Everything proven so far is **single character** (the hero): `generateScene` takes ONE reference image; the studio locks ONE character. Most children's stories need a **cast** — hero + sidekick + adversary — and crucially need **multiple locked characters co-appearing in the same scene, each staying consistent.** That's a meaningfully harder bet than single-character (multiple references to honor at once, identity-bleed risk, per-character consistency checking) and it's **untested**. Separate scenes per character is an easy extension; *together in one scene* is the real unknown.
+  **Action:** a **multi-character consistency spike** (hero+sidekick, hero+adversary co-appearing) before building cast architecture — same de-risk-first playbook as R-1. Then: extend the provider seam to multi-reference (W-4), per-character consistency checks, and a cast model in the project schema (R-6).
+
 _Full stack/architecture tradeoffs (framework, storage, PDF/CMYK, observability, etc.): see `STACK_REVIEW.md`._
 
 ---
