@@ -67,19 +67,20 @@ Dated record of every ambiguous call and the reasoning. Newest at the bottom of 
 ### D-015 — Character workflow: reference-image conditioning for the iterative loop; LoRA as premium (2026-06-25)
 **Decision:** describe (freeform) → moderate → generate model sheet → parent iterates → **lock** character/environment/style → generate each scene conditioned on all locks → output-moderate → lock book. Generation happens **once at creation time**, then frozen (preserves "static document" + stable print). Reference-image conditioning for the live loop; per-character LoRA offered as a premium "perfect consistency" path. (Veo is video — for print-first v1 we use a still-image model with character-reference; motion is a future digital-edition idea.)
 
-### D-016 — Own house styles only; never prompt protected names in production (2026-06-25)
-**Decision:** We build our own named house styles defined by aesthetic *attributes* and locked from our own generated style seeds. We do **not** prompt commercial models with third-party names (Ghibli, Dr. Seuss, Eric Carle, Harry Potter, LOTR, etc.). Starter taxonomy: Painted Wonder (watercolor), Storybook Ink (crosshatch), Torn & Bright (collage), Bright & Round (flat vector), Wobbly World (whimsical line). Dropped LOTR/HP (wrong lane + most protected); flagged Seuss/Carle as the riskiest registers to even gesture at.
+### D-016 — Own house styles only; never prompt protected names in production (2026-06-25) — ✅ CONFIRMED by James
+**Decision:** We build our own named house styles defined by aesthetic *attributes* and locked from our own generated style seeds. We do **not** prompt commercial models with third-party names (Ghibli, Dr. Seuss, Eric Carle, Harry Potter, LOTR, etc.) or generate their copyrighted characters. Starter taxonomy: Painted Wonder (watercolor), Storybook Ink (crosshatch), Torn & Bright (collage), Bright & Round (flat vector), Wobbly World (whimsical line). Dropped LOTR/HP (wrong lane + most protected); flagged Seuss/Carle as the riskiest registers to even gesture at.
+**James's framing (2026-06-25):** "We can legally *evoke the vibe* of these styles but not use their names as it's copyright protected, or use their copyrighted characters." → exactly the posture: attribute vocabulary that evokes a register, never a name or a protected character.
 **Why:** Commercial kids' product = real copyright/trade-dress/trademark exposure on named styles. Owning our styles is both safer and better branding. See PROJECT_STATUS B-4 (legal review).
+**Implemented:** `src/content/houseStyles.ts` — 5 styles, attribute-only `promptFragment`s, no third-party names.
 
 ### D-017 — Lesson-explicitness dial (2026-06-25)
 **Decision:** Add a "how hard the lesson lands" control, from *whisper* (carried by art + rhythm, never stated — WtWTA) to *spoken* (moral said outright). Default gentle. This is a key place the tool scaffolds parents who can't verbalize craft. Extends the lesson motif (D-011) with an explicitness axis.
 
 ---
 
-## Pending confirmation (James to okay)
-
-### P-1 — Freeform character field reverses the "no freeform box" hard constraint
-The original brief's #1 rule was *no freeform prompt box, ever*. The freeform character description reverses it. Proposed reconciliation: **firewall** the description to the art pipeline only (never the plot; plot stays theme-locked), extract a validated name + trait tags for the words, and **moderate both ends** (Claude pass on the text incl. blocking real-people/celebrity/branded-character requests; image-moderation pass on every generated image + the finished book). Safety model shifts from "structural immunity" to "moderation + firewall." **Awaiting James's explicit okay before re-architecting the safety layer.**
+### D-018 — Freeform character field allowed, firewalled + moderated (2026-06-25) — ✅ CONFIRMED by James (was P-1)
+**Decision:** A freeform character-description field is allowed, reversing the original brief's "no freeform box, ever" rule. Reconciliation, now in force: **firewall** the description to the art pipeline only (never the plot; plot stays theme-locked); the hero's **name is a separate structured + validated field** shared with the story; **moderate both ends** (Claude pass on the description incl. blocking real-people/celebrity/branded-character requests; image-moderation pass on every generated image + the finished book). Safety model is now "moderation + firewall," not "structural immunity," for this field.
+**Implemented (structural half):** `src/lib/art/brief.ts` separates validated `name` from freeform `description`; studio uses two distinct fields. Content moderation (the Claude input pass + image output pass) wires in at generate time with the chosen provider + key.
 
 ---
 

@@ -42,16 +42,16 @@ None of these block next session's steps 1–2. B-1 blocks step 3.
 
 ---
 
-## Decisions I'm waiting on from you (top priority — art-first pivot)
+## Decision I'm waiting on from you (one thing)
 
-The 2026-06-25 pivot makes illustration the primary product (D-014). Before I build the art engine I need:
+✅ Freeform (D-018), ✅ own-styles (D-016), ✅ shortlist delivered, ✅ studio shell + style-seed system built (`/studio`).
 
-1. **P-1 — okay the freeform character box?** It reverses your original "no freeform box" rule. Reconciliation: firewall it to the art pipeline (plot stays locked), extract a validated name/traits for the words, moderate both ends. Safety becomes "moderation + firewall," not "structurally impossible." Yes?
-2. **D-016 — okay own-house-styles-only?** We never prompt protected names (Ghibli/Seuss/Carle/HP/LOTR) in production — we build & lock our own styles. Legal-safe + better branding. Yes?
-3. **B-2 — want the image-stack shortlist next?** Scored on character-reference quality, commercial license + IP indemnification, print DPI, cost per book.
-4. **Next build:** prototype the describe→generate→iterate→lock character loop (needs vendor + key), or the vendor-agnostic studio shell + locked-style-seed system now?
+**The one open call: pick the image stack (B-2).** My framing:
+- **Primary model** — *safety-first* **Adobe Firefly** (IP-indemnified — strongest legal cover for a paid kids' product) **vs** *iteration-feel* **Google Gemini image** (best at the describe→tweak→lock loop you want).
+- **Premium tier** — **FLUX-LoRA** for "perfect-lock" consistency once a character is chosen.
+- Then we verify current ToS/indemnity (B-4) before committing.
 
-_(Earlier prose/motif read is now lower priority — prose is parked per your call.)_
+Once you pick, I wire it into the `ImageProvider` seam (no UI change), turn on the moderation passes, and generate the real locked style seeds.
 
 ---
 
@@ -60,4 +60,5 @@ _(Earlier prose/motif read is now lower priority — prose is parked per your ca
 - **2026-06-24/25** — Kickoff. Scope + stack decided and confirmed. Repo scaffolded, all tracking docs created, decisions logged. Held the craft analysis pending reference uploads (the brief's explicit gate before any skeleton work).
 - **2026-06-25** — Built the input-safety layer: deterministic validation + injection screen (`src/lib/validation`, 12 passing tests) and the Claude input-classifier pass (`src/lib/safety`, tool-forced structured output). Logged D-010 (structured output via forced tool call on SDK 0.68; migrate to `output_config.format` on SDK bump). Typecheck + build + tests all clean.
 - **2026-06-25 (cont.)** — At James's direction, proceeded ref-free (D-012) to baseline output quality. Built the motif model (emotion/environment/lesson/feeling + sidekick, curated picklists — D-011), the first skeleton `the-big-new-thing` (ages 3–5, emotional-arc, 6 beats), and a deterministic renderer (no API key needed). 18 tests pass total, including all 7,776 motif combinations. Built the `/preview` browser book view with placeholder flat-vector art.
-- **2026-06-25 (pivot)** — James reframed: **art is the primary product**, prose parked. New direction: freeform AI-generated **locked persistent** character/environment/style (not vector puppets); reference-image loop + LoRA premium; **own house styles only** (legal); lesson-explicitness dial. Logged D-014–017; flagged P-1 (freeform reverses the no-freeform-box rule — pending James's okay) and new blockers B-2 (image stack, now top) + B-4 (legal review). Existing prose scaffold/preview stand as proof. **Now waiting on James: P-1, D-016, B-2 shortlist, and next-build choice.**
+- **2026-06-25 (pivot)** — James reframed: **art is the primary product**, prose parked. New direction: freeform AI-generated **locked persistent** character/environment/style (not vector puppets); reference-image loop + LoRA premium; **own house styles only** (legal); lesson-explicitness dial. Logged D-014–017; flagged P-1 + new blockers B-2 (image stack, now top) + B-4 (legal review).
+- **2026-06-25 (build)** — James confirmed: freeform OK (now D-018) and own-styles-only ("evoke the vibe, not names/characters" — D-016 confirmed). Delivered the image-stack shortlist. Built the **vendor-agnostic art shell**: `ImageProvider` seam + `placeholderProvider`, 5-style house registry (`houseStyles.ts`, attribute-only prompts), the name/description **firewall** (`brief.ts`), and the **`/studio`** describe→generate→iterate→lock character flow (placeholder art). 23 tests pass; typecheck + build clean. **Now waiting on James: the B-2 image-stack pick (Firefly vs Gemini primary; FLUX-LoRA premium).**

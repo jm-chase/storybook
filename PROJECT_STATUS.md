@@ -15,6 +15,12 @@ _Living document — updated every session. Last updated: 2026-06-25._
   - `render.ts` — deterministic slot-fill, **no API call**, so we can preview story quality without a key. **6 render tests pass, including all 7,776 motif combinations rendering with zero unfilled slots.** Sample output looks good (see `scripts/sample.ts`).
 
 - **Browser book preview** (`/preview` route + `src/components/SceneArt.tsx`) — the parent-preview surface. Lays the story out page-by-page like a booklet with **placeholder flat-vector art**, live controls for every motif + personalization field, re-renders on change, and runs the real validation layer on the text inputs. Run `npm run dev` → http://localhost:3000/preview. Art is placeholder pending B-2; layout/text/motif steering are real.
+- **Art system shell (vendor-agnostic) + character studio** (`src/lib/art/`, `src/content/houseStyles.ts`, `/studio`) — the art-first build:
+  - **`ImageProvider` seam** (`types.ts`) — the interface a real model (Gemini/Firefly/FLUX) will implement. `placeholderProvider.ts` implements it now (SVG placeholders that vary by style + seed), so the whole flow runs with no API key.
+  - **House-style registry** (`houseStyles.ts`) — our 5 own styles (D-016), each with its own attribute `promptFragment` (no third-party names) + palette + empty `seedRefs` (real locked seeds pending B-2).
+  - **Firewall** (`brief.ts`, P-1) — structured validated `name` (shared with story) vs freeform `description` (art only, never plot). 5 tests.
+  - **`/studio`** — describe → pick style → generate → **iterate** → **lock** character. Live at http://localhost:3000/studio. Placeholder art; the seam, firewall, and style system are real. Environment/storyboard are labeled stubs.
+  - 23 tests pass total.
 
 Not yet wired end-to-end: no Claude personalization pass, no output-moderation pass (layer 2), no print-ready PDF export (the booklet *file*; the on-screen preview exists), no full wizard flow.
 
@@ -28,10 +34,11 @@ Product is now **art-first** (D-014). Prose is parked. The existing prose skelet
 
 ## Next up
 
-1. **James to confirm:** P-1 (freeform+firewall+moderate) and D-016 (own styles only).
-2. **Image-stack shortlist** (B-2) → pick a vendor.
-3. **Build:** prototype the describe→generate→iterate→**lock** character loop (needs vendor + key), OR the vendor-agnostic studio UI shell + locked-style-seed system now.
-4. (Deferred) Story-craft analysis (B-1) still revalidates pacing/structure once references arrive.
+1. ✅ P-1 confirmed (freeform OK). ✅ Studio shell + style-seed system built (`/studio`). Shortlist delivered.
+2. **James to pick image stack (B-2):** safety-first (Adobe Firefly, IP-indemnified) vs iteration-feel (Google Gemini image) as primary; FLUX-LoRA as the premium "perfect-lock" tier. Verify current ToS/indemnity (B-4) before committing.
+3. **Then:** wire the chosen provider into the `ImageProvider` seam (replaces `placeholderProvider`) → real character generation + the input/output moderation passes (P-1) → generate & lock real **style seeds** into `houseStyles.ts` (currently empty `seedRefs`).
+4. **Then:** extend the studio — environment lock → emotional-arc + pacing + lesson-explicitness dial (D-017) → storyboard → book preview → PDF booklet export.
+5. (Deferred) Story-craft analysis (B-1) revalidates pacing/structure once references arrive.
 
 ## BLOCKERS (non-code) — need James's input
 

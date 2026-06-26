@@ -12,7 +12,7 @@ export default function Home() {
       </p>
       <p style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>
         <a
-          href="/preview"
+          href="/studio"
           style={{
             display: "inline-block",
             padding: "0.6rem 1.1rem",
@@ -21,9 +21,13 @@ export default function Home() {
             borderRadius: 8,
             textDecoration: "none",
             fontWeight: 600,
+            marginRight: "0.75rem",
           }}
         >
-          Open the book preview →
+          Open the character studio →
+        </a>
+        <a href="/preview" style={{ fontSize: "0.9rem", color: "#c2724f" }}>
+          (or the prose book preview)
         </a>
       </p>
 
