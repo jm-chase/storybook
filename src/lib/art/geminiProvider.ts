@@ -82,3 +82,44 @@ export async function generateScene(args: {
   );
   return firstImage(res);
 }
+
+export interface CharacterRef {
+  /** e.g. "the hero", "the sidekick". */
+  label: string;
+  description: string;
+  base64: string;
+  mimeType: string;
+}
+
+/**
+ * Generate a scene with MULTIPLE locked characters together (R-18). Each
+ * character's reference image is passed alongside a labelled instruction so the
+ * model preserves each one and does not blend their features.
+ */
+export async function generateMultiCharacterScene(args: {
+  characters: CharacterRef[];
+  scenePrompt: string;
+  style: HouseStyle;
+}): Promise<GeneratedImage> {
+  const ai = getGeminiClient();
+  const { characters, scenePrompt, style } = args;
+  const labels = characters
+    .map((c, i) => `Image ${i + 1} is ${c.label} (${c.description}).`)
+    .join(" ");
+  const text =
+    `${labels} ` +
+    `Draw a SINGLE illustration showing these characters together. ` +
+    `Keep EACH character exactly as in their reference image — same face, colours, ` +
+    `proportions, and outfit — and do NOT blend or mix their features. ` +
+    `Scene: ${scenePrompt}. Art style: ${style.promptFragment}. No text or lettering.`;
+  const res = await withRetry(() =>
+    ai.models.generateContent({
+      model: GEMINI_IMAGE_MODEL,
+      contents: [
+        { text },
+        ...characters.map((c) => ({ inlineData: { mimeType: c.mimeType, data: c.base64 } })),
+      ],
+    })
+  );
+  return firstImage(res);
+}

@@ -55,7 +55,12 @@ Slice 1 is essentially done: the Output Gate works and the quality check **prove
 
 **✅ Slice 2 DONE & proven** — server-side `/api/generate-character` runs Gemini through the gate and returns 3 clean variants; `/studio` rewired to the choose-from-3 chooser. Live test: "a baby African elephant" → 3 clean options, $0.117, 62s. See it at **http://localhost:3000/studio** (dev server running, bg `bxolgsit0`).
 
-**Next: Slice 3 — point-to-fix / inpaint** (the "most magic" control): tap a defect/detail on the locked image, say it plainly, we run a targeted region edit (Gemini conversational edit) through the gate. Then Slice 4: style-seed locking, identity/wardrobe separation, rule-of-thirds prompts, print upscaling. And W-3 (progress streaming) is now a felt need at ~60s/generate.
+**Multi-character (R-18/D-022): ✅ VALIDATED** — hero+sidekick+adversary co-appear with no identity bleed (`npm run spike:multichar`, $0.23). It's a v1 must-have and the approach is proven. Architecture this unlocks: **cast data model + role, per-character consistency check, studio cast-locking, storyboard "who's in this beat."**
+
+**Next options (James to steer):**
+- **Slice 3 — point-to-fix / inpaint** (the "most magic" single-character control), or
+- **Cast support** — extend the studio + gate + (nascent) project model to lock and co-place multiple characters, now that it's proven essential + feasible.
+- Plus pending refinements: style-seed locking, identity/wardrobe separation, rule-of-thirds prompts, print upscaling; and W-3 (progress streaming) — felt at ~60s/generate.
 
 Open calls for James (not blockers): pick the **safety provider** (LG-1) and the **production model** (Firefly, LG-3) when convenient — launch gates, not dev gates.
 

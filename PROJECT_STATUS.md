@@ -33,6 +33,7 @@ _Living document — updated every session. Last updated: 2026-06-25._
   - `/studio` rewired: real Gemini generation via the endpoint, **choose-from-3** chooser (big preview + thumbnails), lock, cost line, error handling.
   - **Live test:** POST with "a baby African elephant" → HTTP 200, 3 clean variants, 3 attempts (no rerolls), **$0.117**, 62s. Freeform path + gate + chooser all verified. Latency (~60s) reinforces W-3 (needs progress streaming).
   - _Known dead code:_ `placeholderProvider` is now unused by the studio (left in place; could serve an offline demo).
+- **Multi-character spike — VALIDATED (D-022/R-18):** `generateMultiCharacterScene` (multi-reference) + `scripts/multichar-spike.ts` (`npm run spike:multichar`). 3 distinct locked characters (hero/sidekick/adversary) co-appeared in 2- and 3-character scenes with **no identity bleed**, consistent style. $0.23. Multi-character is a v1 must-have and the approach is proven. Still to build: cast data model + role, per-character consistency check, studio cast-locking, storyboard "who's in this beat."
 
 Not yet wired end-to-end: no Claude personalization pass, no output-moderation pass (layer 2), no print-ready PDF export (the booklet *file*; the on-screen preview exists), no full wizard flow.
 

@@ -23,8 +23,9 @@ next-env.d.ts
 /stories-output/*
 !/stories-output/.gitkeep
 
-# consistency spike output (generated images — don't commit)
+# spike output (generated images — don't commit)
 /spike-output/
+/multichar-output/
 
 # os / editor
 .DS_Store
