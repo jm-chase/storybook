@@ -10,6 +10,23 @@ export default function Home() {
         print-ready PDF export are being built. This page is the scaffold
         placeholder.
       </p>
+      <p style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>
+        <a
+          href="/preview"
+          style={{
+            display: "inline-block",
+            padding: "0.6rem 1.1rem",
+            background: "#c2724f",
+            color: "#fff",
+            borderRadius: 8,
+            textDecoration: "none",
+            fontWeight: 600,
+          }}
+        >
+          Open the book preview →
+        </a>
+      </p>
+
       <p style={{ fontSize: "0.9rem", opacity: 0.7, marginTop: "2rem" }}>
         Status, decisions, and next steps live in the tracking docs at the repo
         root (<code>PROJECT_STATUS.md</code>, <code>DECISIONS.md</code>,{" "}
