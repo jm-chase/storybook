@@ -19,9 +19,9 @@ Persistent character across pages — varying pose, expression, environment, all
 The firewall (name vs description) is built; **content moderation is not**. Connecting a real model to a freeform description with no moderation can generate harmful imagery. Required before any real key touches a model: **input pass** (Claude classifier on the description — blocks violence/sexual/hate **and** real-person/celebrity/branded-character/IP requests), **output pass** (vision moderation on *every* generated image), **final-book pass**.
 **Action:** Build the moderation layer as part of the Gemini integration; treat "no model call without both passes" as a hard gate.
 
-### R-3. Per-book cost & margin unknown
-Cost ≈ pages × iterations × generation (+ upscale + optional LoRA training). A parent iterating heavily could run $5–20+ in API per book. We don't know this vs. price → we don't know if the business works.
-**Action:** Instrument cost-per-generation from the first integration; model a worst-case iterating parent; set iteration soft-limits in the UX.
+### R-3. Per-book cost & margin unknown — partially de-risked (2026-06-26)
+Cost ≈ pages × iterations × generation (+ upscale + optional LoRA training). **Update:** Gemini 2.5 Flash Image is ~**$0.039/image**, so base image cost for a 6–8 page book + a few iterations is **under $1** — far below the earlier $5–20 worst case. Remaining unknowns: heavy iteration, upscaling, LoRA training (premium), and the *other* call types (moderation, personalization).
+**Action:** Still instrument cost-per-generation from the first integration; set iteration soft-limits; recompute once moderation + upscale are in.
 
 ---
 
@@ -52,6 +52,11 @@ We removed the prompt box for safety, then reintroduced a freeform box for art. 
 - **R-12. SDK debt.** `@anthropic-ai/sdk` 0.68 predates `output_config.format` (D-010). Revisit on integration.
 - **R-13. Failure-path UX undesigned.** Generation failure, moderation block, rate limit, partial book — no flows.
 - **R-14. Accounts/payments/COPPA resurface at hosting.** Fine to defer, but the data model (R-6) should not bake in assumptions that block them.
+- **R-15. Secrets/generation must be server-side (architecture).** Real model calls carry secret keys and must run in Next route handlers / server actions, never the browser — also the enforcement point for moderation, rate limits, and cost caps. See `STACK_REVIEW.md` W-1. Fix with the first real integration.
+- **R-16. Long-running generation needs async + progress.** A full book is minutes of image calls — can't be an inline HTTP request. Needs progress streaming now, a job/queue when hosted. See `STACK_REVIEW.md` W-3.
+- **R-17. Specialized abuse/CSAM screening required.** A general "inappropriate?" classifier is not sufficient for child-character image generation. See `STACK_REVIEW.md` W-2 — hard gate with R-2.
+
+_Full stack/architecture tradeoffs (framework, storage, PDF/CMYK, observability, etc.): see `STACK_REVIEW.md`._
 
 ---
 

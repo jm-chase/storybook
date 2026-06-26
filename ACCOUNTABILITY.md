@@ -42,16 +42,12 @@ None of these block next session's steps 1–2. B-1 blocks step 3.
 
 ---
 
-## Decision I'm waiting on from you (one thing)
+## What I need from you (one action + one fyi)
 
-✅ Freeform (D-018), ✅ own-styles (D-016), ✅ shortlist delivered, ✅ studio shell + style-seed system built (`/studio`).
+1. **Add `GEMINI_API_KEY` to `.env.local`** (copy from `.env.example`), then run **`npm run spike:consistency`**. Open `spike-output/index.html` and eyeball whether the 6 scenes are the *same Mia*. (If your `ANTHROPIC_API_KEY` is also in `.env.local`, you'll get an automated same-character score too.) That one run de-risks the most important assumption in the product. ~$0.27.
+2. **FYI — image stack settled** (D-019): both, Gemini-first then Firefly, FLUX-LoRA premium. Cost is now known (~$0.039/image → <$1/book).
 
-**The one open call: pick the image stack (B-2).** My framing:
-- **Primary model** — *safety-first* **Adobe Firefly** (IP-indemnified — strongest legal cover for a paid kids' product) **vs** *iteration-feel* **Google Gemini image** (best at the describe→tweak→lock loop you want).
-- **Premium tier** — **FLUX-LoRA** for "perfect-lock" consistency once a character is chosen.
-- Then we verify current ToS/indemnity (B-4) before committing.
-
-Once you pick, I wire it into the `ImageProvider` seam (no UI change), turn on the moderation passes, and generate the real locked style seeds.
+**Want me to run the spike for you?** I can, the moment the key is in `.env.local` — just say go.
 
 ---
 
@@ -61,4 +57,5 @@ Once you pick, I wire it into the `ImageProvider` seam (no UI change), turn on t
 - **2026-06-25** — Built the input-safety layer: deterministic validation + injection screen (`src/lib/validation`, 12 passing tests) and the Claude input-classifier pass (`src/lib/safety`, tool-forced structured output). Logged D-010 (structured output via forced tool call on SDK 0.68; migrate to `output_config.format` on SDK bump). Typecheck + build + tests all clean.
 - **2026-06-25 (cont.)** — At James's direction, proceeded ref-free (D-012) to baseline output quality. Built the motif model (emotion/environment/lesson/feeling + sidekick, curated picklists — D-011), the first skeleton `the-big-new-thing` (ages 3–5, emotional-arc, 6 beats), and a deterministic renderer (no API key needed). 18 tests pass total, including all 7,776 motif combinations. Built the `/preview` browser book view with placeholder flat-vector art.
 - **2026-06-25 (pivot)** — James reframed: **art is the primary product**, prose parked. New direction: freeform AI-generated **locked persistent** character/environment/style (not vector puppets); reference-image loop + LoRA premium; **own house styles only** (legal); lesson-explicitness dial. Logged D-014–017; flagged P-1 + new blockers B-2 (image stack, now top) + B-4 (legal review).
-- **2026-06-25 (build)** — James confirmed: freeform OK (now D-018) and own-styles-only ("evoke the vibe, not names/characters" — D-016 confirmed). Delivered the image-stack shortlist. Built the **vendor-agnostic art shell**: `ImageProvider` seam + `placeholderProvider`, 5-style house registry (`houseStyles.ts`, attribute-only prompts), the name/description **firewall** (`brief.ts`), and the **`/studio`** describe→generate→iterate→lock character flow (placeholder art). 23 tests pass; typecheck + build clean. **Now waiting on James: the B-2 image-stack pick (Firefly vs Gemini primary; FLUX-LoRA premium).**
+- **2026-06-25 (build)** — James confirmed: freeform OK (now D-018) and own-styles-only ("evoke the vibe, not names/characters" — D-016 confirmed). Delivered the image-stack shortlist. Built the **vendor-agnostic art shell**: `ImageProvider` seam + `placeholderProvider`, 5-style house registry (`houseStyles.ts`, attribute-only prompts), the name/description **firewall** (`brief.ts`), and the **`/studio`** describe→generate→iterate→lock character flow (placeholder art). 23 tests pass; typecheck + build clean.
+- **2026-06-26** — Image stack decided (D-019: both, Gemini-first then Firefly). **Built + staged the R-1 consistency spike**: real Gemini image provider (verified against `@google/genai` 2.10 + current docs), optional Claude-vision judge, `npm run spike:consistency` → `spike-output/`. Runs once James adds `GEMINI_API_KEY`. Cost confirmed ~$0.039/image (R-3 softened). Wrote **`STACK_REVIEW.md`** — full tooling/architecture tradeoffs + weak points (server-side keys, abuse/CSAM moderation, async generation, thin seam, no data model). **Now waiting on James: add the Gemini key + run the spike (or tell me to).**

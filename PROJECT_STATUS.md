@@ -21,6 +21,8 @@ _Living document — updated every session. Last updated: 2026-06-25._
   - **Firewall** (`brief.ts`, P-1) — structured validated `name` (shared with story) vs freeform `description` (art only, never plot). 5 tests.
   - **`/studio`** — describe → pick style → generate → **iterate** → **lock** character. Live at http://localhost:3000/studio. Placeholder art; the seam, firewall, and style system are real. Environment/storyboard are labeled stubs.
   - 23 tests pass total.
+- **Gemini image provider + consistency spike (staged)** (`src/lib/art/geminiProvider.ts`, `consistencyJudge.ts`, `scripts/consistency-spike.ts`) — real `gemini-2.5-flash-image` calls (character sheet + reference-conditioned scenes), verified against `@google/genai` 2.10. Optional Claude-vision judge. Runs on `npm run spike:consistency` once `GEMINI_API_KEY` is set. Typechecks; preflight is graceful without a key.
+- **Stack & architecture review** (`STACK_REVIEW.md`) — full tooling/architecture tradeoffs + top weak points (server-side keys W-1, abuse/CSAM moderation W-2, async generation W-3, thin provider seam W-4, no data model W-5).
 
 Not yet wired end-to-end: no Claude personalization pass, no output-moderation pass (layer 2), no print-ready PDF export (the booklet *file*; the on-screen preview exists), no full wizard flow.
 
@@ -37,7 +39,7 @@ Product is now **art-first** (D-014). Prose is parked. The existing prose skelet
 **A senior-eng pressure test was run 2026-06-25 — see `RISKS.md`.** Headline: we've built UI breadth but the central claim (character consistency across pages) is unvalidated and moderation is unbuilt. De-risk-first sequence:
 
 1. ✅ Image stack decided (D-019: both, Gemini-first then Firefly). ✅ Studio shell + style system built.
-2. **R-1 — consistency eval spike (Gemini):** prove/kill "same character across 6 varied scenes." + R-3 cost instrumentation. **This is the next build** (needs a Gemini key). Gate everything on it.
+2. **R-1 — consistency eval spike (Gemini):** ✅ **built and staged** (`scripts/consistency-spike.ts`, `npm run spike:consistency`) — generates a character + 6 varied scenes via `gemini-2.5-flash-image`, saves to `spike-output/index.html`, optional Claude-vision same-character score. **Runs the moment James adds `GEMINI_API_KEY` to `.env.local`.** Gate everything on the result. Cost ≈ $0.27/run.
 3. **R-2 — moderation layer** (Claude input pass + image output pass + final-book pass). Hard gate before any real model usage.
 4. If consistency holds: full provider seam (`generateScene` multi-ref, R-5) + project/book data model + save (R-6).
 5. **Thinnest MVP:** one character, one style, one environment, 4–6 fixed storyboard pages, real+moderated+locked → one printable PDF. Then breadth (freeform scaffolding, Firefly, pacing/lesson dial, print hardening).
