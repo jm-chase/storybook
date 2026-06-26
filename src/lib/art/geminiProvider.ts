@@ -14,7 +14,7 @@ import type { CharacterBrief, HouseStyle } from "./types";
 export const GEMINI_IMAGE_MODEL =
   process.env.GEMINI_IMAGE_MODEL ?? "gemini-2.5-flash-image";
 
-export const COST_PER_IMAGE_USD = 0.039;
+export { COST_PER_IMAGE_USD } from "./cost";
 
 let client: GoogleGenAI | null = null;
 function getClient(): GoogleGenAI {
@@ -30,6 +30,28 @@ export interface GeneratedImage {
   /** base64-encoded image bytes. */
   base64: string;
   mimeType: string;
+}
+
+/**
+ * Retry transient failures: 429/RESOURCE_EXHAUSTED (quota/rate) and
+ * 503/UNAVAILABLE ("high demand"). Honors the server's retry delay when given,
+ * otherwise exponential backoff.
+ */
+async function withRetry<T>(fn: () => Promise<T>, tries = 4): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      const msg = String((e as { message?: string })?.message ?? e);
+      const retriable = /\b429\b|RESOURCE_EXHAUSTED|\b503\b|UNAVAILABLE|high demand/i.test(msg);
+      if (!retriable || attempt >= tries - 1) throw e;
+      const m = msg.match(/retry in ([0-9.]+)s/i) ?? msg.match(/"retryDelay":\s*"([0-9.]+)s"/);
+      const waitMs = m
+        ? (Math.ceil(parseFloat(m[1])) + 1) * 1000
+        : Math.min(3000 * 2 ** attempt, 30000);
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
 }
 
 function firstImage(res: GenerateContentResponse): GeneratedImage {
@@ -55,10 +77,9 @@ export async function generateCharacterSheet(
     `Character: ${brief.description}. ` +
     `Art style: ${style.promptFragment}. ` +
     `No text or lettering anywhere in the image.`;
-  const res = await ai.models.generateContent({
-    model: GEMINI_IMAGE_MODEL,
-    contents: prompt,
-  });
+  const res = await withRetry(() =>
+    ai.models.generateContent({ model: GEMINI_IMAGE_MODEL, contents: prompt })
+  );
   return firstImage(res);
 }
 
@@ -74,18 +95,20 @@ export async function generateScene(args: {
 }): Promise<GeneratedImage> {
   const ai = getClient();
   const { referenceBase64, referenceMimeType = "image/png", scenePrompt, style } = args;
-  const res = await ai.models.generateContent({
-    model: GEMINI_IMAGE_MODEL,
-    contents: [
-      {
-        text:
-          `Keep THIS exact character — same face, colours, proportions, and outfit — ` +
-          `and draw them in a new scene. Scene: ${scenePrompt}. ` +
-          `Art style: ${style.promptFragment}. ` +
-          `A single illustration, no text or lettering.`,
-      },
-      { inlineData: { mimeType: referenceMimeType, data: referenceBase64 } },
-    ],
-  });
+  const res = await withRetry(() =>
+    ai.models.generateContent({
+      model: GEMINI_IMAGE_MODEL,
+      contents: [
+        {
+          text:
+            `Keep THIS exact character — same face, colours, proportions, and outfit — ` +
+            `and draw them in a new scene. Scene: ${scenePrompt}. ` +
+            `Art style: ${style.promptFragment}. ` +
+            `A single illustration, no text or lettering.`,
+        },
+        { inlineData: { mimeType: referenceMimeType, data: referenceBase64 } },
+      ],
+    })
+  );
   return firstImage(res);
 }

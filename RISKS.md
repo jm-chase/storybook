@@ -11,9 +11,8 @@ We've built **outside-in**: scaffold, studio UI, style system, firewall, trackin
 
 ## S1 — Critical (resolve before more breadth)
 
-### R-1. The core technical bet (character consistency) is unvalidated
-Persistent character across pages — varying pose, expression, environment, all in a locked style at ~300 DPI, at acceptable cost — IS the product. We've asserted current models can do it; we have no evidence. If the character morphs page to page, the product doesn't exist.
-**Action:** A **consistency eval spike** on Gemini *before* anything else: describe one character → model sheet → generate 6 scenes varying pose/emotion/environment → judge consistency (human + an automated image-similarity check). Gate all further art work on the result. This is the first thing to build next.
+### R-1. The core technical bet (character consistency) — ✅ LARGELY VALIDATED (2026-06-26)
+Persistent character across pages IS the product. **Spike result (D-020):** character identity held strongly across 6 wildly different scenes on `gemini-2.5-flash-image`. The bet holds. Remaining work, not blockers: (1) lock **style** with a seed reference image (1/6 scenes drifted stylistically), (2) separate **identity from wardrobe** in scene prompts (model over-locked the outfit). Both are addressable and validate design choices already made (style seeds; identity model). **Downgraded from blocker.**
 
 ### R-2. Moderation is unbuilt — a freeform box feeding image-gen for children
 The firewall (name vs description) is built; **content moderation is not**. Connecting a real model to a freeform description with no moderation can generate harmful imagery. Required before any real key touches a model: **input pass** (Claude classifier on the description — blocks violence/sexual/hate **and** real-person/celebrity/branded-character/IP requests), **output pass** (vision moderation on *every* generated image), **final-book pass**.
@@ -46,7 +45,7 @@ We removed the prompt box for safety, then reintroduced a freeform box for art. 
 ## S3 — Moderate
 
 - **R-8. Story↔art integration undefined.** Words (rhythm/pacing/page-turns) + art + lesson-explicitness dial must combine in the storyboard; no model for that yet. Prose is parked but the integration seam isn't designed.
-- **R-9. Print pipeline unproven.** AI native res → 300 DPI upscale; full-bleed raster art through booklet imposition; RGB→CMYK color shift. The PDF/booklet path is still unbuilt and now must handle full-bleed images.
+- **R-9. Print pipeline unproven — and upscaling confirmed needed (2026-06-26).** Gemini output is **1024×1024** (~3.4in @300 DPI). A picture-book page (~8in) needs ~2.3× **upscaling** (`sharp` resize and/or an AI upscaler). Plus full-bleed raster through booklet imposition and RGB→CMYK for POD. PDF/booklet path still unbuilt.
 - **R-10. Mobile.** Parents will create on phones; current UI is desktop-ish inline styles.
 - **R-11. No eval/integration tests for the art path.** Only pure-logic unit tests (good ones). The thing that matters most (consistency) has no harness — ties to R-1.
 - **R-12. SDK debt.** `@anthropic-ai/sdk` 0.68 predates `output_config.format` (D-010). Revisit on integration.
