@@ -14,9 +14,9 @@ We've built **outside-in**: scaffold, studio UI, style system, firewall, trackin
 ### R-1. The core technical bet (character consistency) — ✅ LARGELY VALIDATED (2026-06-26)
 Persistent character across pages IS the product. **Spike result (D-020):** character identity held strongly across 6 wildly different scenes on `gemini-2.5-flash-image`. The bet holds. Remaining work, not blockers: (1) lock **style** with a seed reference image (1/6 scenes drifted stylistically), (2) separate **identity from wardrobe** in scene prompts (model over-locked the outfit). Both are addressable and validate design choices already made (style seeds; identity model). **Downgraded from blocker.**
 
-### R-2. Moderation is unbuilt — a freeform box feeding image-gen for children
-The firewall (name vs description) is built; **content moderation is not**. Connecting a real model to a freeform description with no moderation can generate harmful imagery. Required before any real key touches a model: **input pass** (Claude classifier on the description — blocks violence/sexual/hate **and** real-person/celebrity/branded-character/IP requests), **output pass** (vision moderation on *every* generated image), **final-book pass**.
-**Action:** Build the moderation layer as part of the Gemini integration; treat "no model call without both passes" as a hard gate.
+### R-2. Moderation — partially built; safety arm is a documented launch gate (2026-06-26)
+Rescoped into the **Output Gate** (D-021). **Built + validated:** quality + consistency checks (Gemini vision) auto-reject defects/drift and reroll. **Still required before real users (`LAUNCH_GATES.md`):** the **safety/abuse/CSAM** arm (LG-1, currently a fail-loud dev stub) and **input-description moderation** (LG-2). A general classifier is not sufficient for child imagery — needs a specialized provider, fail-closed, first in the chain.
+**Action:** Keep building behind the stub; LG-1/LG-2 are hard gates before launch, not before dev.
 
 ### R-3. Per-book cost & margin unknown — partially de-risked (2026-06-26)
 Cost ≈ pages × iterations × generation (+ upscale + optional LoRA training). **Update:** Gemini 2.5 Flash Image is ~**$0.039/image**, so base image cost for a 6–8 page book + a few iterations is **under $1** — far below the earlier $5–20 worst case. Remaining unknowns: heavy iteration, upscaling, LoRA training (premium), and the *other* call types (moderation, personalization).

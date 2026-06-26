@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "spike:consistency": "node --env-file-if-exists=.env.local --import tsx scripts/consistency-spike.ts"
+    "spike:consistency": "node --env-file-if-exists=.env.local --import tsx scripts/consistency-spike.ts",
+    "validate:gate": "node --env-file-if-exists=.env.local --import tsx scripts/validate-gate.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

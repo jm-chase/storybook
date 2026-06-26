@@ -49,7 +49,21 @@ None of these block next session's steps 1–2. B-1 blocks step 3.
 
 **✅ RESOLVED (2026-06-26):** billing on ($25 credit), spike ran to completion. **Core bet validated (D-020)** — Mia held consistent across 6 varied scenes. Spike now throttled (6s) + resumable + prints a live cost table. Cost ~$0.27 for 7 images; per-book projections: lean $0.31 / typical $0.94 / heavy $1.87.
 
-## Decision I'm waiting on from you (one: the safety provider)
+## Next session — re-entry
+
+Slice 1 is essentially done: the Output Gate works and the quality check **proved itself** by catching both defects James spotted (3-hands + small umbrella). Safety is a documented launch-gate stub (`LAUNCH_GATES.md` LG-1).
+
+**Next: Slice 2 — wire it together server-side.**
+1. A Next **route handler** (`/api/generate-character`) that runs Gemini generation through the gate and returns 3 clean variants — keys server-side (W-1/LG-6).
+2. Studio character step → call that endpoint; show the **choose-from-3** variant chooser + intent nudges.
+3. Then **Slice 3: point-to-fix / inpaint** (the magic).
+4. Fold in: style-seed locking, identity/wardrobe separation, rule-of-thirds prompts, print upscaling.
+
+Open calls for James (not blockers): pick the **safety provider** (LG-1) and the **production model** (Firefly, LG-3) when convenient — both are launch gates, not dev gates.
+
+---
+
+## (resolved) Decision — the safety provider
 
 Iteration model + Output Gate are decided (D-021) and the **gate framework is built + tested**. Build sequence from here:
 - **Slice 1 (in progress):** ✅ gate framework. Next: concrete **quality** + **consistency** checks via Gemini vision (we can validate the quality check catches the 3-hands on `04-scene` using images we already have — ~free), and move generation **server-side** (W-1).
@@ -69,4 +83,5 @@ Iteration model + Output Gate are decided (D-021) and the **gate framework is bu
 - **2026-06-25 (pivot)** — James reframed: **art is the primary product**, prose parked. New direction: freeform AI-generated **locked persistent** character/environment/style (not vector puppets); reference-image loop + LoRA premium; **own house styles only** (legal); lesson-explicitness dial. Logged D-014–017; flagged P-1 + new blockers B-2 (image stack, now top) + B-4 (legal review).
 - **2026-06-25 (build)** — James confirmed: freeform OK (now D-018) and own-styles-only ("evoke the vibe, not names/characters" — D-016 confirmed). Delivered the image-stack shortlist. Built the **vendor-agnostic art shell**: `ImageProvider` seam + `placeholderProvider`, 5-style house registry (`houseStyles.ts`, attribute-only prompts), the name/description **firewall** (`brief.ts`), and the **`/studio`** describe→generate→iterate→lock character flow (placeholder art). 23 tests pass; typecheck + build clean.
 - **2026-06-26** — Image stack decided (D-019). Built + staged the R-1 spike (real Gemini provider, verified against `@google/genai` 2.10). Wrote `STACK_REVIEW.md` (architecture tradeoffs + weak points). Key added; first run blocked on free-tier quota (B-6) → James enabled billing.
-- **2026-06-26 (spike run)** — **Core bet VALIDATED (D-020).** Mia held consistent across 6 varied scenes on `gemini-2.5-flash-image`; R-1 downgraded from blocker. Added throttle (6s) + retry (429/503) + resume + a live cost table + `cost.ts` (per-image/page/iteration projections). Confirmed 1024² output → upscaling needed for print (R-9). Refinements logged: style-seed locking, identity/wardrobe separation, incidental-text handling. **Next: James to choose the next build (recommend: moderation layer + server-side generation).**
+- **2026-06-26 (spike run)** — **Core bet VALIDATED (D-020).** Mia held consistent across 6 varied scenes. Added throttle + retry + resume + cost table. 1024² → upscaling needed (R-9).
+- **2026-06-26 (iteration design + gate)** — Agreed the iteration model (D-021): parent iterates in intent (choose-from-3 + point-to-fix), we own craft/QA/rerolls; "moderation layer" → **Output Gate** (safety+quality+consistency+auto-reroll). Built the gate framework (4 tests) + concrete quality/consistency checks (Gemini vision) + safety dev stub. **Validated the gate caught both defects James flagged** (3-hands + small umbrella). Wrote `LAUNCH_GATES.md` (LG-1 safety provider as the headline launch gate, per James's request). Extracted shared `geminiClient` + `retry`. 27 tests pass. **Next: Slice 2 — server-side `/api/generate-character` + studio variant chooser.**
