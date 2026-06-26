@@ -27,6 +27,12 @@ _Living document — updated every session. Last updated: 2026-06-25._
   - **Concrete checks built + validated:** `qualityCheck` + `consistencyCheck` on Gemini vision (`gemini-2.5-flash`), `safetyCheckStub` (dev stub, LG-1). `defaultChecks()` = safety→quality→consistency. Shared `geminiClient` + `retry`.
   - **Validation (`npm run validate:gate`):** the quality check independently caught **both** defects James spotted — the 3-hands (04) and the too-small umbrella (02); consistency confirmed same-character throughout. Finding: consistency judge is lenient on subtle style drift → enforce style via locked seed (D-020), not the judge.
 - **Launch-gate provision** (`LAUNCH_GATES.md`) — the must-do-before-real-users checklist, headlined by **LG-1** (replace the safety stub with a specialized abuse/CSAM provider; wiring contract included). Per James: documented as a launch gate, dev proceeds with the stub.
+- **Slice 2 — server-side generation + studio chooser (DONE, proven end-to-end):**
+  - `src/lib/art/generateCharacterVariants.ts` — generate candidates → run each through the gate → return clean variants + cost.
+  - `src/app/api/generate-character/route.ts` — server route (keys off the client, W-1/LG-6); validates the brief, returns 3 variant data-URLs + attempts + cost.
+  - `/studio` rewired: real Gemini generation via the endpoint, **choose-from-3** chooser (big preview + thumbnails), lock, cost line, error handling.
+  - **Live test:** POST with "a baby African elephant" → HTTP 200, 3 clean variants, 3 attempts (no rerolls), **$0.117**, 62s. Freeform path + gate + chooser all verified. Latency (~60s) reinforces W-3 (needs progress streaming).
+  - _Known dead code:_ `placeholderProvider` is now unused by the studio (left in place; could serve an offline demo).
 
 Not yet wired end-to-end: no Claude personalization pass, no output-moderation pass (layer 2), no print-ready PDF export (the booklet *file*; the on-screen preview exists), no full wizard flow.
 

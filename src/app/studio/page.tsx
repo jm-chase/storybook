@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { HOUSE_STYLES, HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
+import { HOUSE_STYLES } from "@/content/houseStyles";
 import { buildCharacterBrief, MAX_DESCRIPTION } from "@/lib/art/brief";
-import { placeholderProvider } from "@/lib/art/placeholderProvider";
-import type { ImageRef } from "@/lib/art/types";
 
-// The studio shell: describe a character (freeform, art-only), pick a house
-// style, then generate → iterate → lock. Art is PLACEHOLDER (no model wired);
-// the ImageProvider seam means a real model drops in with no UI change.
+// The studio character step (Slice 2): describe a character, pick a house style,
+// generate via the server (real Gemini, behind the Output Gate), then CHOOSE FROM
+// 3 clean variants and lock one. Generation + safety/quality/consistency run
+// server-side (/api/generate-character) — the key never reaches the browser.
 
-const card = (active: boolean): React.CSSProperties => ({
+const styleCard = (active: boolean): React.CSSProperties => ({
   border: `2px solid ${active ? "#c2724f" : "#00000018"}`,
   borderRadius: 10,
   padding: "0.6rem",
@@ -18,40 +17,75 @@ const card = (active: boolean): React.CSSProperties => ({
   background: "#fff",
 });
 
+interface GenResponse {
+  variants?: string[];
+  attempts?: number;
+  costUsd?: number;
+  satisfied?: boolean;
+  error?: string;
+  fields?: Record<string, { message: string }>;
+}
+
 export default function StudioPage() {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState("Mia");
+  const [description, setDescription] = useState(
+    "a blond-haired, spunky, brown-eyed 4-year-old girl in a red raincoat"
+  );
   const [styleId, setStyleId] = useState(HOUSE_STYLES[0].id);
-  const [seed, setSeed] = useState(0);
-  const [sheet, setSheet] = useState<ImageRef | null>(null);
+
+  const [variants, setVariants] = useState<string[]>([]);
+  const [selected, setSelected] = useState(0);
   const [locked, setLocked] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [meta, setMeta] = useState<string>("");
 
   const styleIds = HOUSE_STYLES.map((s) => s.id);
 
-  async function generate(nextSeed: number) {
-    const result = buildCharacterBrief({ name, description, styleId }, styleIds);
-    if (!result.ok) {
-      setErrors(result.errors);
+  async function generate() {
+    // Client-side pre-validation for instant feedback (server re-validates).
+    const built = buildCharacterBrief({ name, description, styleId }, styleIds);
+    if (!built.ok) {
+      setErrors(built.errors);
       return;
     }
     setErrors({});
     setBusy(true);
-    const style = HOUSE_STYLE_BY_ID[styleId];
-    const ref = await placeholderProvider.generateCharacterSheet(result.brief, style, nextSeed);
-    setSheet(ref);
-    setLocked(false);
-    setSeed(nextSeed);
-    setBusy(false);
+    setMeta("");
+    try {
+      const res = await fetch("/api/generate-character", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, description, styleId }),
+      });
+      const data: GenResponse = await res.json();
+      if (!res.ok) {
+        if (data.fields) {
+          setErrors(Object.fromEntries(Object.entries(data.fields).map(([k, v]) => [k, v.message])));
+        } else {
+          setMeta(`⚠️ ${data.error ?? "Generation failed."}`);
+        }
+        return;
+      }
+      setVariants(data.variants ?? []);
+      setSelected(0);
+      setLocked(false);
+      setMeta(
+        `${data.variants?.length ?? 0} options · ${data.attempts} generated · $${data.costUsd?.toFixed(3)}` +
+          (data.satisfied ? "" : " · (budget reached)")
+      );
+    } catch (e) {
+      setMeta(`⚠️ ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "2rem 1.5rem" }}>
+    <main style={{ maxWidth: 920, margin: "0 auto", padding: "2rem 1.5rem" }}>
       <h1 style={{ fontSize: "1.6rem" }}>Character studio</h1>
       <p style={{ fontSize: "0.85rem", opacity: 0.7, marginTop: 0 }}>
-        Step 1 of the book: create your main character. Describe them however you like, pick a look,
-        then iterate until it&apos;s right and lock it.
+        Describe your character, pick a look, then choose your favourite of 3 and lock it.
       </p>
 
       <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", marginTop: "1rem" }}>
@@ -59,12 +93,7 @@ export default function StudioPage() {
         <section style={{ flex: 1, minWidth: 300 }}>
           <label style={{ display: "block", marginBottom: "1rem" }}>
             <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hero&apos;s name</span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Mia"
-              style={inputStyle(!!errors.name)}
-            />
+            <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle(!!errors.name)} />
             {errors.name && <Err>{errors.name}</Err>}
           </label>
 
@@ -73,13 +102,12 @@ export default function StudioPage() {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. a blond-haired, spunky, brown-eyed 4-year-old boy — or a baby African elephant"
               rows={3}
               maxLength={MAX_DESCRIPTION + 20}
               style={{ ...inputStyle(!!errors.description), resize: "vertical" }}
             />
             <span style={{ fontSize: "0.7rem", opacity: 0.55 }}>
-              {description.length}/{MAX_DESCRIPTION} · used for artwork only — never the story&apos;s plot
+              {description.length}/{MAX_DESCRIPTION} · drives artwork only — never the story&apos;s plot
             </span>
             {errors.description && <Err>{errors.description}</Err>}
           </label>
@@ -87,7 +115,7 @@ export default function StudioPage() {
           <p style={{ fontSize: "0.85rem", fontWeight: 600, margin: "1rem 0 0.5rem" }}>Art style</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
             {HOUSE_STYLES.map((s) => (
-              <div key={s.id} style={card(s.id === styleId)} onClick={() => setStyleId(s.id)}>
+              <div key={s.id} style={styleCard(s.id === styleId)} onClick={() => setStyleId(s.id)}>
                 <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
                   {s.swatches.map((c) => (
                     <span key={c} style={{ width: 18, height: 18, borderRadius: 4, background: c }} />
@@ -100,67 +128,102 @@ export default function StudioPage() {
           </div>
 
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.25rem", flexWrap: "wrap" }}>
-            <button onClick={() => generate(0)} disabled={busy} style={btn(true)}>
-              {sheet ? "Generate again" : "Generate character"}
+            <button onClick={generate} disabled={busy} style={btn(true)}>
+              {busy ? "Generating 3 options…" : variants.length ? "Generate again" : "Generate character"}
             </button>
-            {sheet && (
-              <button onClick={() => generate(seed + 1)} disabled={busy} style={btn(false)}>
-                Iterate ↻
-              </button>
-            )}
-            {sheet && !locked && (
+            {variants.length > 0 && !locked && (
               <button onClick={() => setLocked(true)} disabled={busy} style={btn(false)}>
-                Lock character 🔒
+                Lock this one 🔒
               </button>
             )}
           </div>
+          {meta && <p style={{ fontSize: "0.75rem", opacity: 0.7, marginTop: 8 }}>{meta}</p>}
         </section>
 
-        {/* Result */}
-        <section style={{ flex: 1, minWidth: 280 }}>
-          <div
-            style={{
-              border: `2px solid ${locked ? "#2a9d8f" : "#00000018"}`,
-              borderRadius: 12,
-              padding: "0.75rem",
-              background: "#fffdf8",
-              minHeight: 280,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {sheet ? (
-              <img src={sheet.src} alt="character placeholder" style={{ width: "100%", maxWidth: 360 }} />
-            ) : (
-              <span style={{ opacity: 0.5, fontSize: "0.85rem", textAlign: "center" }}>
-                Your character will appear here.
-              </span>
-            )}
-          </div>
-          {locked && (
-            <p style={{ color: "#2a9d8f", fontSize: "0.8rem", fontWeight: 600 }}>
-              🔒 Locked — this exact character will stay consistent across every page.
-            </p>
+        {/* Result: choose from 3 */}
+        <section style={{ flex: 1, minWidth: 300 }}>
+          {busy && variants.length === 0 ? (
+            <Placeholder>Generating 3 clean options… this can take ~30s.</Placeholder>
+          ) : variants.length === 0 ? (
+            <Placeholder>Your 3 options will appear here. Pick your favourite, then lock.</Placeholder>
+          ) : (
+            <>
+              {/* big selected preview */}
+              <div
+                style={{
+                  border: `3px solid ${locked ? "#2a9d8f" : "#00000018"}`,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  background: "#fffdf8",
+                  marginBottom: 8,
+                }}
+              >
+                <img src={variants[selected]} alt="character option" style={{ width: "100%", display: "block" }} />
+              </div>
+              {/* thumbnails to choose */}
+              <div style={{ display: "flex", gap: 8 }}>
+                {variants.map((src, i) => (
+                  <img
+                    key={i}
+                    src={src}
+                    alt={`option ${i + 1}`}
+                    onClick={() => !locked && setSelected(i)}
+                    style={{
+                      width: 90,
+                      height: 90,
+                      objectFit: "cover",
+                      borderRadius: 8,
+                      cursor: locked ? "default" : "pointer",
+                      border: `3px solid ${selected === i ? "#c2724f" : "transparent"}`,
+                      opacity: locked && selected !== i ? 0.4 : 1,
+                    }}
+                  />
+                ))}
+              </div>
+              {locked && (
+                <p style={{ color: "#2a9d8f", fontSize: "0.8rem", fontWeight: 600 }}>
+                  🔒 Locked — this exact character stays consistent across every page.
+                </p>
+              )}
+            </>
           )}
         </section>
       </div>
 
-      {/* What's next (stubs) */}
       <div style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px solid #00000012", opacity: 0.6 }}>
-        <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>Coming next in the studio:</p>
+        <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>Coming next:</p>
         <p style={{ fontSize: "0.8rem", margin: 0 }}>
-          Build &amp; lock the <strong>environment</strong> → shape the <strong>emotional arc + pacing</strong>{" "}
-          → lay out the <strong>storyboard</strong> → preview the book → export the printable booklet.
+          Point-to-fix any detail · build &amp; lock the <strong>environment</strong> · shape the{" "}
+          <strong>emotional arc + pacing</strong> · lay out the <strong>storyboard</strong> · export the booklet.
         </p>
       </div>
 
       <p style={{ fontSize: "0.72rem", opacity: 0.55, marginTop: "1.5rem", lineHeight: 1.5 }}>
-        Artwork here is a <strong>placeholder</strong> — no image model is wired yet (pending the B-2 stack pick).
-        The describe → generate → iterate → lock flow, the firewall (description drives art only), and the house-style
-        system are real. Content moderation of the description runs at generate time once a model + key are connected.
+        Real artwork via Gemini, generated server-side behind the Output Gate (safety stub + quality + consistency,
+        with auto-reroll). Each &quot;Generate&quot; produces a few images — see the cost line above.
       </p>
     </main>
+  );
+}
+
+function Placeholder({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        border: "2px dashed #00000022",
+        borderRadius: 12,
+        minHeight: 280,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "1rem",
+        opacity: 0.6,
+        fontSize: "0.85rem",
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
