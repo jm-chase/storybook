@@ -49,11 +49,15 @@ None of these block next session's steps 1–2. B-1 blocks step 3.
 
 **✅ RESOLVED (2026-06-26):** billing on ($25 credit), spike ran to completion. **Core bet validated (D-020)** — Mia held consistent across 6 varied scenes. Spike now throttled (6s) + resumable + prints a live cost table. Cost ~$0.27 for 7 images; per-book projections: lean $0.31 / typical $0.94 / heavy $1.87.
 
-## Decision I'm waiting on from you (what to build next)
+## Decision I'm waiting on from you (one: the safety provider)
 
-The core risk is retired — we can build forward. The de-risk sequence says next is **server-side generation + the moderation layer (W-1/W-2/R-2)**, then the **project/data model + async generation**, then the **thinnest MVP slice** (one character → one environment → ~6 storyboard pages → moderated → locked → one printable PDF). Refinements surfaced by the spike to fold in: **style-seed locking** and **identity/wardrobe separation**.
+Iteration model + Output Gate are decided (D-021) and the **gate framework is built + tested**. Build sequence from here:
+- **Slice 1 (in progress):** ✅ gate framework. Next: concrete **quality** + **consistency** checks via Gemini vision (we can validate the quality check catches the 3-hands on `04-scene` using images we already have — ~free), and move generation **server-side** (W-1).
+- **Slice 2:** wire the studio character step → real Gemini behind the gate, with the **choose-from-3** variant chooser.
+- **Slice 3 (the magic):** **point-to-fix / inpaint**.
+- **Slice 4:** fold in spike refinements — **style-seed locking**, **identity/wardrobe separation**, composition (rule-of-thirds) in the prompt templates; print **upscaling** (R-9).
 
-**Where do you want me to point next?** My recommendation: build the **moderation layer + move generation server-side** (the safety gate that must exist before the studio uses a real model), then wire the studio's character step to real Gemini. Your call.
+**The one decision (W-2): the safety arm of the gate.** A general vision classifier (Gemini/Claude) is fine for *dev*, but a child-imagery product needs a **specialized abuse/CSAM screen before real users** (e.g. Thorn Safer, Hive, Cloud Vision SafeSearch). My recommendation: build now with a clearly-stubbed safety check (dev only, logs "NOT ENFORCED"), and make the specialized provider a **launch gate**, not a dev gate. **OK to proceed that way, or do you want to pick the safety provider now?**
 
 ---
 
