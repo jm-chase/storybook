@@ -42,6 +42,12 @@ None of these block next session's steps 1–2. B-1 blocks step 3.
 
 ---
 
+## ⚠️ WHAT I NEED FROM YOU RIGHT NOW (2026-07-06, blocks the 36-hour push)
+
+**B-7 — Google billing regressed.** Every paid Gemini call fails (image → 429 `free_tier limit: 0`; even text → 403), though the key is valid. Go to **aistudio.google.com / console.cloud.google.com → Billing** for the key's project and re-enable pay-as-you-go (the $25 credit may have expired or the billing account paused). Until then I build everything that doesn't need live generation (storyboard model, PDF pipeline, skins) — but the first real end-to-end book needs this back.
+
+---
+
 ## What I need from you (one action + one fyi)
 
 1. **Add `GEMINI_API_KEY` to `.env.local`** (copy from `.env.example`), then run **`npm run spike:consistency`**. Open `spike-output/index.html` and eyeball whether the 6 scenes are the *same Mia*. (If your `ANTHROPIC_API_KEY` is also in `.env.local`, you'll get an automated same-character score too.) That one run de-risks the most important assumption in the product. ~$0.27.
@@ -57,10 +63,8 @@ Slice 1 is essentially done: the Output Gate works and the quality check **prove
 
 **Multi-character (R-18/D-022): ✅ VALIDATED** — hero+sidekick+adversary co-appear with no identity bleed (`npm run spike:multichar`, $0.23). It's a v1 must-have and the approach is proven. Architecture this unlocks: **cast data model + role, per-character consistency check, studio cast-locking, storyboard "who's in this beat."**
 
-**Next options (James to steer):**
-- **Slice 3 — point-to-fix / inpaint** (the "most magic" single-character control), or
-- **Cast support** — extend the studio + gate + (nascent) project model to lock and co-place multiple characters, now that it's proven essential + feasible.
-- Plus pending refinements: style-seed locking, identity/wardrobe separation, rule-of-thirds prompts, print upscaling; and W-3 (progress streaming) — felt at ~60s/generate.
+**✅ DECIDED (2026-07-06): the new plan is D-023 — one engine, three front-ends** (parent studio / classics & occasions / indie-author B2B), spine-first. D-024: no in-copyright novels (Narnia is out); public-domain classics are skin 2. **36-hour push underway:** cast support + data model → storyboard + scenes → PDF → skins.
+- Pending refinements still queued behind the spine: point-to-fix (Slice 3), style-seed locking, identity/wardrobe separation, rule-of-thirds prompts, print upscaling; and W-3 (progress streaming) — felt at ~60s/generate.
 
 Open calls for James (not blockers): pick the **safety provider** (LG-1) and the **production model** (Firefly, LG-3) when convenient — launch gates, not dev gates.
 
@@ -88,4 +92,5 @@ Iteration model + Output Gate are decided (D-021) and the **gate framework is bu
 - **2026-06-26** — Image stack decided (D-019). Built + staged the R-1 spike (real Gemini provider, verified against `@google/genai` 2.10). Wrote `STACK_REVIEW.md` (architecture tradeoffs + weak points). Key added; first run blocked on free-tier quota (B-6) → James enabled billing.
 - **2026-06-26 (spike run)** — **Core bet VALIDATED (D-020).** Mia held consistent across 6 varied scenes. Added throttle + retry + resume + cost table. 1024² → upscaling needed (R-9).
 - **2026-06-26 (iteration design + gate)** — Agreed the iteration model (D-021): parent iterates in intent (choose-from-3 + point-to-fix), we own craft/QA/rerolls; "moderation layer" → **Output Gate** (safety+quality+consistency+auto-reroll). Built the gate framework (4 tests) + concrete quality/consistency checks (Gemini vision) + safety dev stub. **Validated the gate caught both defects James flagged** (3-hands + small umbrella). Wrote `LAUNCH_GATES.md` (LG-1 safety provider as the headline launch gate, per James's request). Extracted shared `geminiClient` + `retry`. 27 tests pass.
+- **2026-07-06 (new plan + cast support)** — **D-023 adopted: one engine, three front-ends** (parent studio / classics & occasions / indie-author B2B), spine-first; **D-024:** no in-copyright novels (Narnia ruled out — derivative work), public-domain classics instead. Built **cast support on a persisted project model** (R-6 partial): `src/lib/project` schema + filesystem store (6 tests, traversal-guarded), full project/cast/lock/image API, `/studio` → cast studio (picker → roster → add → generate 3 → choose → lock), per-character consistency check in the gate (`GateContext.references[]`). 39 tests, tsc + build clean, live API loop smoke-tested. **B-7 discovered:** Google billing regressed — all paid calls fail (429/403) though the key is valid; real-generation smoke blocked until James re-enables billing. Side-find: Gemini 3.x image models now listed — trial via `GEMINI_IMAGE_MODEL` once billing is back.
 - **2026-06-26 (Slice 2)** — **Server-side generation + studio chooser, proven end-to-end.** `generateCharacterVariants` (generate→gate→clean variants), `/api/generate-character` route (keys server-side, W-1/LG-6), `/studio` rewired to choose-from-3. Live test ("baby African elephant"): 3 clean variants, $0.117, 62s. Freeform + gate + chooser all verified. Latency ~60s → W-3 (progress streaming) now a felt need. **Next: Slice 3 — point-to-fix / inpaint.**

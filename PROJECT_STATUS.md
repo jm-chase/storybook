@@ -35,6 +35,14 @@ _Living document — updated every session. Last updated: 2026-06-25._
   - _Known dead code:_ `placeholderProvider` is now unused by the studio (left in place; could serve an offline demo).
 - **Multi-character spike — VALIDATED (D-022/R-18):** `generateMultiCharacterScene` (multi-reference) + `scripts/multichar-spike.ts` (`npm run spike:multichar`). 3 distinct locked characters (hero/sidekick/adversary) co-appeared in 2- and 3-character scenes with **no identity bleed**, consistent style. $0.23. Multi-character is a v1 must-have and the approach is proven. Still to build: cast data model + role, per-character consistency check, studio cast-locking, storyboard "who's in this beat."
 
+- **Cast support on a persisted project data model (R-6 partial / D-022) — DONE, 2026-07-06:**
+  - `src/lib/project/` — `Project`/`CastMember` schema (role: hero/sidekick/adversary/friend, firewalled name/description, locked reference) + filesystem store (`projects/<id>/project.json` + `images/`, gitignored), strict id/filename allowlists (no traversal). 6 unit tests.
+  - API routes: `GET/POST /api/projects`, `GET/PATCH /api/projects/[id]` (style locks once any cast member is locked — 409), `POST .../cast` (one-hero rule enforced), `PATCH/DELETE .../cast/[castId]`, `POST .../cast/[castId]/lock`, `GET .../images/[file]` (immutable cache).
+  - `/studio` reworked into the **cast studio**: project picker + create → cast roster with role badges + locked thumbnails → add character → generate 3 (existing gate path) → choose → lock → persisted across restarts.
+  - **Per-character consistency check (D-022 item 2):** `GateContext.references[]` — multi-character scenes verify EACH cast member against its own locked reference in one labelled vision call.
+  - Verified: 39 tests pass, `tsc` clean, `next build` clean, full API loop smoke-tested live (create → add hero → validation 400s → lock → 409 style-change → image serves 200 → list shows locked count). Real-generation smoke **blocked by B-7** (billing regression), but the generation path itself is unchanged from proven Slice 2.
+  - _Hosted note (documented in the lock route):_ v1 lock accepts the client's chosen data-URL; once deployed, lock must reference a server-held gate-passed candidate id (gate bypass otherwise).
+
 Not yet wired end-to-end: no Claude personalization pass, no output-moderation pass (layer 2), no print-ready PDF export (the booklet *file*; the on-screen preview exists), no full wizard flow.
 
 ## In Progress
@@ -45,16 +53,17 @@ Not yet wired end-to-end: no Claude personalization pass, no output-moderation p
 
 Product is now **art-first** (D-014). Prose is parked. The existing prose skeleton + browser preview stand as a working scaffold/proof, but the next phase is the **illustration engine**: freeform character → AI-generated locked persistent reference → house style → environment → storyboard → output-moderated → locked book → print. Safety re-architects around firewalled+moderated freeform input (P-1, pending James's okay).
 
-## Next up
+## Next up — THE NEW PLAN (D-023, adopted 2026-07-06)
 
-**A senior-eng pressure test was run 2026-06-25 — see `RISKS.md`.** Headline: we've built UI breadth but the central claim (character consistency across pages) is unvalidated and moderation is unbuilt. De-risk-first sequence:
+**Master plan: one engine, three front-ends.** The engine (locked cast + house styles + Output Gate + storyboard + print pipeline) is the asset; three product skins sit on it: (1) **parent studio**, (2) **classics & occasions** (public-domain only — D-024), (3) **indie-author B2B**. Spine first, skins after.
 
-1. ✅ Image stack decided (D-019: both, Gemini-first then Firefly). ✅ Studio shell + style system built.
-2. **R-1 — consistency eval spike (Gemini):** ✅✅ **RUN — core bet validated (D-020).** Character identity held across 6 varied scenes; ~$0.27. Remaining (not blockers): lock style via seed image (1/6 drifted), separate identity from wardrobe, upscale for print (1024² → R-9). Spike is resumable + throttled + prints a live cost table.
-3. **R-2 — moderation layer** (Claude input pass + image output pass + final-book pass). Hard gate before any real model usage.
-4. If consistency holds: full provider seam (`generateScene` multi-ref, R-5) + project/book data model + save (R-6).
-5. **Thinnest MVP:** one character, one style, one environment, 4–6 fixed storyboard pages, real+moderated+locked → one printable PDF. Then breadth (freeform scaffolding, Firefly, pacing/lesson dial, print hardening).
-6. (Deferred) Story-craft analysis (B-1) once references arrive.
+**Build sequence (36-hour push started 2026-07-06):**
+1. **Cast support on a real data model (R-6/D-022)** — Project/CastMember schema, filesystem persistence, cast studio (lock hero/sidekick/adversary), per-character consistency check. ← IN PROGRESS
+2. **Storyboard + scene generation** — beats with "who's in this beat," multi-ref scene generation through the gate, choose-from-3 per page.
+3. **Print-ready PDF export** — @react-pdf/renderer layout + upscale (R-9 basic) → **one real book end-to-end**. This completes the spine.
+4. **Skins:** occasion templates + first public-domain classic (skin 2); manuscript-in flow for authors (skin 3, thin).
+5. Then: point-to-fix/inpaint (Slice 3 magic), style-seed locking, progress streaming (W-3), series ("same cast, new adventure").
+6. (Deferred) Story-craft analysis (B-1) once references arrive; launch gates (`LAUNCH_GATES.md`) before real users.
 
 ## BLOCKERS (non-code) — need James's input
 
@@ -73,7 +82,12 @@ The product is now art-first: freeform character → AI-generated, locked, persi
 - **Cost per book** (per-creation generation, not per-render)
 - **Next action:** James asked for / Claude to bring a shortlist scoring candidates on the above. Then pick → prototype the describe→generate→iterate→lock loop.
 
-### B-6. Google billing — blocks the consistency spike (NEW, 2026-06-26)
+### B-7. Google billing REGRESSED — blocks all real generation (NEW, 2026-07-06) — ⏳ NEEDS JAMES
+Billing was enabled 2026-06-26 ($25 credit) and the spikes ran. On 2026-07-06 every paid call fails again: image model → `429 free_tier limit: 0`; even plain text `gemini-2.5-flash` → `403 PERMISSION_DENIED`. The key itself is **valid** (the free models-list endpoint works). So the Google project's billing/quota standing lapsed — credit expired/paused, billing account suspended, or the API was restricted on the project.
+- **Fix (no code change):** check the project at aistudio.google.com / console.cloud.google.com → Billing; re-enable pay-as-you-go or attach a live billing account, then re-try `/studio` generation.
+- **Side-find while probing:** `gemini-3.1-flash-image` and `gemini-3-pro-image` are now available — likely successors to 2.5-flash-image. Model id is env-configurable (`GEMINI_IMAGE_MODEL`), so we can A/B them the moment billing is back.
+
+### B-6. Google billing — blocks the consistency spike (RESOLVED 2026-06-26; superseded by B-7)
 The spike ran and **validated the integration** (auth ✅, network ✅, SDK call ✅) but hit `HTTP 429, free_tier_requests limit: 0` — Gemini image generation (Nano Banana) is **paid-tier only**, and the key's Google project is on the free tier.
 - **Fix (no code change):** enable billing / pay-as-you-go on the project for this API key at aistudio.google.com, then re-run `npm run spike:consistency`.
 - **Status:** ⏳ waiting on James to enable billing. Code is ready; one command from results.

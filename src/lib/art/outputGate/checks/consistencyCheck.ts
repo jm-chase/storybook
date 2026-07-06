@@ -9,6 +9,20 @@ import { visionVerdict } from "./geminiVision";
 export const consistencyCheck: ImageCheck = {
   name: "consistency",
   async run(candidate: ImageCandidate, ctx: GateContext): Promise<CheckResult> {
+    // Multi-character scenes (D-022): verify EACH cast member against its own
+    // locked reference, in a single vision call with labelled images.
+    if (ctx.references && ctx.references.length > 0) {
+      const refs = ctx.references;
+      const labels = refs.map((r, i) => `Image ${i + 1} is the locked reference for ${r.label}.`).join(" ");
+      const v = await visionVerdict(
+        [...refs.map((r) => ({ base64: r.base64, mimeType: r.mimeType })), candidate],
+        `${labels} The FINAL image is a story scene meant to feature ALL of these characters together. ` +
+          "FAIL if any listed character is missing, or is not clearly the same character as its reference " +
+          "(different face, hair, colours, or body), or if two characters' features have been blended or mixed. " +
+          "PASS only if every listed character appears and each is unmistakably its reference."
+      );
+      return { check: "consistency", status: v.pass ? "pass" : "fail", reason: v.reason };
+    }
     if (!ctx.referenceBase64) {
       return { check: "consistency", status: "pass", reason: "no reference (this is the reference)" };
     }

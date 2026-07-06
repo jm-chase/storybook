@@ -33,9 +33,8 @@ D-016 stops us *naming* protected styles, but a freeform description can still y
 ### R-5. `ImageProvider` seam is too thin for the real pipeline
 Only `generateCharacterSheet`. The real flow needs `generateScene(characterRef, environmentRef, style, pose/emotion)` with **multi-reference conditioning** + a moderation hook. Designing this now avoids a refactor.
 
-### R-6. No book/project data model or persistence
-"Lock the book" means persisting locked character/env/style + storyboard + images. There's no schema and no save/resume. A long multi-step flow with no save = drop-off + lost work.
-**Action:** Define a `Project`/`Book` model (local filesystem now, cloud-ready) before extending the studio.
+### R-6. No book/project data model or persistence — ✅ PARTIALLY RESOLVED (2026-07-06)
+"Lock the book" means persisting locked character/env/style + storyboard + images. **Built:** `Project`/`CastMember` schema + filesystem store (`src/lib/project`), full API, cast studio — projects with locked casts now survive restarts. **Remaining:** the storyboard/pages/environment half of the model (next slice), and a cloud store swap at hosting.
 
 ### R-7. Blank-box returns — the "we help the parent" promise is unbuilt
 We removed the prompt box for safety, then reintroduced a freeform box for art. The product's stated value is *helping parents who can't verbalize craft* — but right now it's an empty textarea. Needs scaffolding: example chips, guided trait pickers, suggestion prompts, sensible defaults.

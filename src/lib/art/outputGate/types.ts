@@ -20,11 +20,25 @@ export interface CheckResult {
   reason?: string;
 }
 
+/** A labelled locked reference — one per cast member appearing in the image. */
+export interface NamedReference {
+  /** e.g. "the hero Mia" — used in the vision-check instruction. */
+  label: string;
+  base64: string;
+  mimeType: string;
+}
+
 export interface GateContext {
   brief: CharacterBrief;
   style: HouseStyle;
   /** The locked character reference, for consistency checks (absent for the first/reference image). */
   referenceBase64?: string;
+  /**
+   * Multi-character scenes (D-022): EACH cast member's own locked reference.
+   * When present, the consistency check verifies every listed character
+   * appears on-model — takes precedence over referenceBase64.
+   */
+  references?: NamedReference[];
 }
 
 export interface ImageCheck {

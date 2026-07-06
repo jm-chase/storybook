@@ -23,6 +23,9 @@ next-env.d.ts
 /stories-output/*
 !/stories-output/.gitkeep
 
+# saved book projects (parent-owned data + generated images — never commit)
+/projects/
+
 # spike output (generated images — don't commit)
 /spike-output/
 /multichar-output/
