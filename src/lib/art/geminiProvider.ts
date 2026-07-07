@@ -83,6 +83,37 @@ export async function generateScene(args: {
   return firstImage(res);
 }
 
+/**
+ * Point-to-fix (D-021, Slice 3): a TARGETED edit of an existing image. The
+ * parent says the fix plainly ("the umbrella is too small"); we instruct the
+ * model to change only that and preserve everything else. The result still
+ * goes through the gate, with the ORIGINAL as the consistency reference.
+ */
+export async function editImage(args: {
+  base64: string;
+  mimeType: string;
+  instruction: string;
+  style: HouseStyle;
+}): Promise<GeneratedImage> {
+  const ai = getGeminiClient();
+  const res = await withRetry(() =>
+    ai.models.generateContent({
+      model: GEMINI_IMAGE_MODEL,
+      contents: [
+        {
+          text:
+            `Edit this illustration. Make ONLY this change: ${args.instruction}. ` +
+            `Keep everything else EXACTLY as it is — same characters, faces, colours, ` +
+            `composition, background, and art style (${args.style.promptFragment}). ` +
+            `No text or lettering.`,
+        },
+        { inlineData: { mimeType: args.mimeType, data: args.base64 } },
+      ],
+    })
+  );
+  return firstImage(res);
+}
+
 /** A scene with NO cast (establishing shot / environment page). */
 export async function generateStandaloneScene(args: {
   scenePrompt: string;

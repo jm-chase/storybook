@@ -456,7 +456,9 @@ function ProjectView({
 function StoryboardSection({ project, onProject }: { project: Project; onProject: (p: Project) => void }) {
   const [activeBeatId, setActiveBeatId] = useState<string | null>(null);
   const [editBeatId, setEditBeatId] = useState<string | null>(null);
+  const [fixBeatId, setFixBeatId] = useState<string | null>(null);
   const activeBeat = project.storyboard.find((b) => b.id === activeBeatId) ?? null;
+  const fixBeat = project.storyboard.find((b) => b.id === fixBeatId) ?? null;
   const castById = new Map(project.cast.map((c) => [c.id, c]));
 
   async function removeBeat(beatId: string) {
@@ -534,6 +536,11 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
                     Generate page art
                   </button>
                 )}
+                {beat.art && (
+                  <button onClick={() => setFixBeatId(beat.id)} style={btnSmall(true)}>
+                    ✏️ Point to fix
+                  </button>
+                )}
                 <button onClick={() => setEditBeatId(beat.id)} style={btnSmall(false)}>
                   Edit
                 </button>
@@ -559,6 +566,84 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
           onDone={() => setActiveBeatId(null)}
         />
       )}
+
+      {fixBeat && fixBeat.art && (
+        <FixWorkspace
+          key={fixBeat.id}
+          project={project}
+          beat={fixBeat}
+          pageNumber={project.storyboard.indexOf(fixBeat) + 1}
+          onProject={onProject}
+          onDone={() => setFixBeatId(null)}
+        />
+      )}
+    </section>
+  );
+}
+
+/** Point-to-fix (Slice 3): say the fix plainly → edited variants that changed only that → relock. */
+function FixWorkspace({
+  project,
+  beat,
+  pageNumber,
+  onProject,
+  onDone,
+}: {
+  project: Project;
+  beat: StoryBeat;
+  pageNumber: number;
+  onProject: (p: Project) => void;
+  onDone: () => void;
+}) {
+  const [instruction, setInstruction] = useState("");
+
+  return (
+    <section style={{ border: "2px solid #c2724f33", borderRadius: 12, padding: "1rem", marginTop: "0.75rem" }}>
+      <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 0.25rem" }}>✏️ Fixing page {pageNumber}</p>
+      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "flex-start" }}>
+        {beat.art && (
+          <img
+            src={`/api/projects/${project.id}/images/${beat.art.file}`}
+            alt="current art"
+            style={{ width: 140, height: 140, objectFit: "cover", borderRadius: 8 }}
+          />
+        )}
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <label style={{ display: "block", marginBottom: "0.5rem" }}>
+            <span style={labelText}>What should change? (just this one thing)</span>
+            <input
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              placeholder="make the umbrella bigger"
+              style={inputStyle(false)}
+            />
+          </label>
+          <VariantChooser
+            requestVariants={() =>
+              fetch(`/api/projects/${project.id}/beats/${beat.id}/refine`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ instruction }),
+              })
+            }
+            requestLock={(dataUrl) =>
+              fetch(`/api/projects/${project.id}/beats/${beat.id}/lock`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ imageDataUrl: dataUrl }),
+              })
+            }
+            onLocked={(p) => {
+              onProject(p);
+              onDone();
+            }}
+            idleHint="Everything else stays exactly as it is — the gate rejects edits that change more than you asked."
+          />
+          <button onClick={onDone} style={{ ...btn(false), marginTop: "0.5rem" }}>
+            Done
+          </button>
+        </div>
+      </div>
     </section>
   );
 }
