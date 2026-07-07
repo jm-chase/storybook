@@ -164,7 +164,93 @@ function Picker({
           {busy ? "Creating…" : "Create book"}
         </button>
       </section>
+
+      <ManuscriptSection onCreated={onCreated} />
     </>
+  );
+}
+
+/* ---------------- Illustrate a manuscript (skin 3, authors) ---------------- */
+
+function ManuscriptSection({ onCreated }: { onCreated: (p: Project) => void }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [styleId, setStyleId] = useState(HOUSE_STYLES[0].id);
+  const [manuscript, setManuscript] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+
+  async function create() {
+    setBusy(true);
+    setErrors({});
+    try {
+      const res = await fetch("/api/projects/from-manuscript", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title, styleId, manuscript }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setErrors(
+          d.fields
+            ? Object.fromEntries(Object.entries(d.fields as Record<string, { message: string }>).map(([k, v]) => [k, v.message]))
+            : { manuscript: d.error ?? "Could not create the book." }
+        );
+        return;
+      }
+      onCreated(d.project);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section style={{ marginTop: "1.5rem", maxWidth: 560 }}>
+      <p style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.25rem" }}>
+        Illustrate your manuscript <span style={{ fontWeight: 400, opacity: 0.6 }}>(for authors)</span>
+      </p>
+      {!open ? (
+        <div style={{ ...card(false), display: "flex", alignItems: "center", justifyContent: "center", minHeight: 56 }} onClick={() => setOpen(true)}>
+          <span style={{ fontSize: "0.85rem", fontWeight: 600, opacity: 0.7 }}>＋ Paste a manuscript</span>
+        </div>
+      ) : (
+        <div style={{ ...card(true), cursor: "default" }}>
+          <label style={{ display: "block", marginBottom: "0.5rem" }}>
+            <span style={labelText}>Book title</span>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle(!!errors.title)} />
+            {errors.title && <Err>{errors.title}</Err>}
+          </label>
+          <label style={{ display: "block", marginBottom: "0.5rem" }}>
+            <span style={labelText}>Art style</span>
+            <select value={styleId} onChange={(e) => setStyleId(e.target.value)} style={inputStyle(!!errors.styleId)}>
+              {HOUSE_STYLES.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} — {s.blurb}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: "block" }}>
+            <span style={labelText}>Manuscript — one page per paragraph (blank line between pages)</span>
+            <textarea
+              value={manuscript}
+              onChange={(e) => setManuscript(e.target.value)}
+              rows={8}
+              placeholder={"The bridge was old. The sky was grey. Mia walked on anyway.\n\n“WHO crosses MY bridge?” grumbled the troll."}
+              style={{ ...inputStyle(!!errors.manuscript), resize: "vertical" }}
+            />
+            {errors.manuscript && <Err>{errors.manuscript}</Err>}
+          </label>
+          <p style={{ fontSize: "0.72rem", opacity: 0.6, margin: "0.4rem 0" }}>
+            Each page arrives with its scene pre-filled from your text — refine the scene and assign your cast per page,
+            then generate. Your text is typeset, never redrawn by the model.
+          </p>
+          <button onClick={create} disabled={busy} style={btn(true)}>
+            {busy ? "Creating…" : "Create from manuscript"}
+          </button>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -369,6 +455,7 @@ function ProjectView({
 
 function StoryboardSection({ project, onProject }: { project: Project; onProject: (p: Project) => void }) {
   const [activeBeatId, setActiveBeatId] = useState<string | null>(null);
+  const [editBeatId, setEditBeatId] = useState<string | null>(null);
   const activeBeat = project.storyboard.find((b) => b.id === activeBeatId) ?? null;
   const castById = new Map(project.cast.map((c) => [c.id, c]));
 
@@ -388,7 +475,20 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
         <p style={{ fontSize: "0.78rem", opacity: 0.6 }}>Lock your cast first — every page is drawn from their locked references.</p>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-        {project.storyboard.map((beat, i) => (
+        {project.storyboard.map((beat, i) =>
+          beat.id === editBeatId ? (
+            <EditBeatCard
+              key={beat.id}
+              project={project}
+              beat={beat}
+              pageNumber={i + 1}
+              onProject={(p) => {
+                onProject(p);
+                setEditBeatId(null);
+              }}
+              onCancel={() => setEditBeatId(null)}
+            />
+          ) : (
           <div key={beat.id} style={{ ...card(beat.id === activeBeatId), cursor: "default", display: "flex", gap: "0.75rem" }}>
             {beat.art ? (
               <img
@@ -434,13 +534,17 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
                     Generate page art
                   </button>
                 )}
+                <button onClick={() => setEditBeatId(beat.id)} style={btnSmall(false)}>
+                  Edit
+                </button>
                 <button onClick={() => removeBeat(beat.id)} style={btnSmall(false)}>
                   Remove
                 </button>
               </div>
             </div>
           </div>
-        ))}
+          )
+        )}
       </div>
 
       <AddBeatCard project={project} onProject={onProject} onAdded={(beatId) => setActiveBeatId(beatId)} />
@@ -567,6 +671,105 @@ function AddBeatCard({
       <button onClick={add} disabled={busy} style={{ ...btn(true), marginTop: "0.4rem" }}>
         {busy ? "Adding…" : "Add page"}
       </button>
+    </div>
+  );
+}
+
+function EditBeatCard({
+  project,
+  beat,
+  pageNumber,
+  onProject,
+  onCancel,
+}: {
+  project: Project;
+  beat: StoryBeat;
+  pageNumber: number;
+  onProject: (p: Project) => void;
+  onCancel: () => void;
+}) {
+  const [sceneDescription, setSceneDescription] = useState(beat.sceneDescription);
+  const [text, setText] = useState(beat.text);
+  const [castIds, setCastIds] = useState<string[]>(beat.castIds);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+
+  function toggleCast(id: string) {
+    setCastIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+  }
+
+  async function save() {
+    setBusy(true);
+    setErrors({});
+    try {
+      const res = await fetch(`/api/projects/${project.id}/beats/${beat.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sceneDescription, text, castIds }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setErrors(
+          d.fields
+            ? Object.fromEntries(Object.entries(d.fields as Record<string, { message: string }>).map(([k, v]) => [k, v.message]))
+            : { sceneDescription: d.error ?? "Could not save." }
+        );
+        return;
+      }
+      onProject(d.project);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ ...card(true), cursor: "default" }}>
+      <p style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0 0 0.5rem" }}>Editing page {pageNumber}</p>
+      <label style={{ display: "block", marginBottom: "0.5rem" }}>
+        <span style={labelText}>What happens in this scene? (drives the art)</span>
+        <textarea
+          value={sceneDescription}
+          onChange={(e) => setSceneDescription(e.target.value)}
+          rows={2}
+          maxLength={MAX_SCENE_DESCRIPTION + 20}
+          style={{ ...inputStyle(!!errors.sceneDescription), resize: "vertical" }}
+        />
+        {errors.sceneDescription && <Err>{errors.sceneDescription}</Err>}
+      </label>
+      <label style={{ display: "block", marginBottom: "0.5rem" }}>
+        <span style={labelText}>Page text</span>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={2}
+          maxLength={MAX_PAGE_TEXT + 20}
+          style={{ ...inputStyle(!!errors.text), resize: "vertical" }}
+        />
+        {errors.text && <Err>{errors.text}</Err>}
+      </label>
+      <span style={labelText}>Who&apos;s in this page?</span>
+      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", margin: "0.35rem 0 0.5rem" }}>
+        {project.cast.map((m) => (
+          <button key={m.id} onClick={() => toggleCast(m.id)} style={{ ...btnSmall(castIds.includes(m.id)), opacity: m.locked ? 1 : 0.55 }}>
+            {ROLE_META[m.role].emoji} {m.name}
+            {!m.locked && " (unlocked)"}
+          </button>
+        ))}
+      </div>
+      {errors.castIds && <Err>{errors.castIds}</Err>}
+      {beat.art && (
+        <p style={{ fontSize: "0.72rem", color: "#a8442a", margin: "0.25rem 0" }}>
+          Changing the scene or the cast clears this page&apos;s locked art (the picture would no longer match).
+        </p>
+      )}
+      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.4rem" }}>
+        <button onClick={save} disabled={busy} style={btn(true)}>
+          {busy ? "Saving…" : "Save"}
+        </button>
+        <button onClick={onCancel} disabled={busy} style={btn(false)}>
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }
