@@ -18,9 +18,11 @@ export async function generateSceneVariants(args: {
   characters: CharacterRef[];
   /** Locked setting reference — scenes condition on it when the beat has one. */
   environment?: EnvironmentRef;
+  /** Beat has page text → keep the bottom of the frame quiet for the caption panel. */
+  captionSpace?: boolean;
   opts?: { variantsWanted?: number; maxAttempts?: number; onEvent?: GateOptions["onEvent"] };
 }): Promise<VariantResult> {
-  const { scenePrompt, style, characters, environment } = args;
+  const { scenePrompt, style, characters, environment, captionSpace } = args;
   const variantsWanted = args.opts?.variantsWanted ?? 3;
   const maxAttempts = args.opts?.maxAttempts ?? 6;
 
@@ -28,8 +30,8 @@ export async function generateSceneVariants(args: {
   const generate = async (): Promise<ImageCandidate> => {
     const img =
       characters.length === 0
-        ? await generateStandaloneScene({ scenePrompt, style, environment, styleSeed })
-        : await generateMultiCharacterScene({ characters, scenePrompt, style, environment, styleSeed });
+        ? await generateStandaloneScene({ scenePrompt, style, environment, styleSeed, captionSpace })
+        : await generateMultiCharacterScene({ characters, scenePrompt, style, environment, styleSeed, captionSpace });
     return { base64: img.base64, mimeType: img.mimeType };
   };
 

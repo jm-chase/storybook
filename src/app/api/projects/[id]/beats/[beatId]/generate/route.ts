@@ -70,6 +70,7 @@ export async function POST(_req: Request, { params }: Params) {
       style,
       characters,
       environment,
+      captionSpace: Boolean(beat.text),
       opts: { onEvent: emitProgress },
     });
     if (result.variants.length === 0) {

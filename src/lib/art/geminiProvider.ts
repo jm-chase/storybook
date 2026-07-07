@@ -54,6 +54,16 @@ const STYLE_SEED_LABEL =
 const SETTING_LABEL =
   "the SETTING — set the scene in this exact location, keeping its architecture, materials, colours, and landscape consistent";
 
+// Pages with text get a typeset caption panel overlaid on the lower part of
+// the art (bookPdf) — ask the model to keep that region visually quiet.
+// Wording matters: an early "keep the bottom uncluttered" draft made the model
+// leave a literal blank band + frame (the D-020 border-drift class).
+const CAPTION_SPACE_INSTRUCTION =
+  "The painting must fill the ENTIRE image edge-to-edge with no blank margins, " +
+  "border, or frame. Place the focal action in the upper two-thirds; the lower " +
+  "part of the scene should be simple painted ground, water, or grass with no " +
+  "important details, since a caption will be placed over it. ";
+
 /** Number the reference images and produce the matching inlineData parts. */
 function labeled(refs: LabeledRef[]): { labels: string; parts: { inlineData: { mimeType: string; data: string } }[] } {
   return {
@@ -160,6 +170,7 @@ export async function generateStandaloneScene(args: {
   style: HouseStyle;
   environment?: EnvironmentRef;
   styleSeed?: StyleSeedRef;
+  captionSpace?: boolean;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
   const refs: LabeledRef[] = [];
@@ -169,6 +180,7 @@ export async function generateStandaloneScene(args: {
   const text =
     labels +
     `A children's picture-book illustration. Scene: ${args.scenePrompt}. ` +
+    (args.captionSpace ? CAPTION_SPACE_INSTRUCTION : "") +
     `Art style: ${args.style.promptFragment}. ` +
     `A single illustration, no characters in focus, no text or lettering.`;
   const res = await withRetry(() =>
@@ -199,6 +211,7 @@ export async function generateMultiCharacterScene(args: {
   style: HouseStyle;
   environment?: EnvironmentRef;
   styleSeed?: StyleSeedRef;
+  captionSpace?: boolean;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
   const { characters, scenePrompt, style, environment, styleSeed } = args;
@@ -215,7 +228,9 @@ export async function generateMultiCharacterScene(args: {
     `Keep each character's outfit from the reference too, UNLESS the scene clearly calls for ` +
     `different clothing (such as sleeping, swimming, or dressing up) — then change only the ` +
     `clothes and keep the character unmistakably recognizable. ` +
-    `Scene: ${scenePrompt}. Art style: ${style.promptFragment}. No text or lettering.`;
+    `Scene: ${scenePrompt}. ` +
+    (args.captionSpace ? CAPTION_SPACE_INSTRUCTION : "") +
+    `Art style: ${style.promptFragment}. No text or lettering.`;
   const res = await withRetry(() =>
     ai.models.generateContent({
       model: GEMINI_IMAGE_MODEL,
