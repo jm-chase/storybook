@@ -476,14 +476,14 @@ function ProjectView({
 
       <StoryboardSection project={project} onProject={onProject} />
 
-      {project.storyboard.length > 0 && (
-        <a
-          href={`/api/projects/${project.id}/pdf`}
-          style={{ ...btn(true), display: "inline-block", textDecoration: "none", marginTop: "0.5rem" }}
-        >
-          📖 Download the book (PDF)
-        </a>
-      )}
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", flexWrap: "wrap", marginTop: "0.5rem" }}>
+        {project.storyboard.length > 0 && (
+          <a href={`/api/projects/${project.id}/pdf`} style={{ ...btn(true), display: "inline-block", textDecoration: "none" }}>
+            📖 Download the book (PDF)
+          </a>
+        )}
+        {project.cast.some((c) => c.locked) && <SeriesButton project={project} onSwitch={onProject} />}
+      </div>
 
       <div style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px solid #00000012", opacity: 0.6 }}>
         <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>Coming next:</p>
@@ -492,6 +492,61 @@ function ProjectView({
         </p>
       </div>
     </>
+  );
+}
+
+/** Series (D-023): start a new adventure with this book's locked cast + settings + style. */
+function SeriesButton({ project, onSwitch }: { project: Project; onSwitch: (p: Project) => void }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function create() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}/series`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setError(d.fields?.title?.message ?? d.error ?? "Could not create the new adventure.");
+        return;
+      }
+      onSwitch(d.project);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} style={btn(false)}>
+        🔁 New adventure with this cast
+      </button>
+    );
+  }
+  return (
+    <span style={{ display: "inline-flex", gap: 6, alignItems: "flex-start", flexWrap: "wrap" }}>
+      <span>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={`${project.cast.find((c) => c.role === "hero")?.name ?? "A"} and the …`}
+          style={{ ...inputStyle(!!error), width: 240, marginTop: 0 }}
+        />
+        {error && <Err>{error}</Err>}
+      </span>
+      <button onClick={create} disabled={busy} style={btn(true)}>
+        {busy ? "Creating…" : "Start it"}
+      </button>
+      <button onClick={() => setOpen(false)} disabled={busy} style={btn(false)}>
+        Cancel
+      </button>
+    </span>
   );
 }
 

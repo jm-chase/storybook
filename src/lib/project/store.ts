@@ -163,6 +163,22 @@ export async function saveBeatImage(
   return saveImage(projectId, `beat-${beatId}`, base64, mimeType, root);
 }
 
+/** Copy stored images between projects (series: locked refs carry over 1:1). */
+export async function copyImages(
+  srcProjectId: string,
+  destProjectId: string,
+  files: string[],
+  root: string = DEFAULT_ROOT()
+): Promise<void> {
+  for (const file of files) {
+    assertSafeFilename(file, "image filename");
+    await fs.copyFile(
+      path.join(projectDir(root, srcProjectId), "images", file),
+      path.join(projectDir(root, destProjectId), "images", file)
+    );
+  }
+}
+
 export async function readImage(
   projectId: string,
   file: string,
