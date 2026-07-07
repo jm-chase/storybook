@@ -210,8 +210,11 @@ export async function generateMultiCharacterScene(args: {
   const text =
     labels +
     `Draw a SINGLE illustration showing these characters together. ` +
-    `Keep EACH character exactly as in their reference image — same face, colours, ` +
-    `proportions, and outfit — and do NOT blend or mix their features. ` +
+    `Keep EACH character's IDENTITY exactly as in their reference image — same face, hair, ` +
+    `eyes, colours, markings, and body proportions — and do NOT blend or mix their features. ` +
+    `Keep each character's outfit from the reference too, UNLESS the scene clearly calls for ` +
+    `different clothing (such as sleeping, swimming, or dressing up) — then change only the ` +
+    `clothes and keep the character unmistakably recognizable. ` +
     `Scene: ${scenePrompt}. Art style: ${style.promptFragment}. No text or lettering.`;
   const res = await withRetry(() =>
     ai.models.generateContent({
