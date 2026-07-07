@@ -1,15 +1,25 @@
 import React from "react";
 import { Document, Page, View, Text, Image, renderToBuffer } from "@react-pdf/renderer";
+import sharp from "sharp";
 import type { Project, StoryBeat } from "../project/types";
 import { readImage } from "../project/store";
 
 // Print PDF export (D-006 layer 1): one square page per beat — full-page art
 // with the text typeset in a soft panel (text is NEVER model-rendered, D-020).
-// v1 is the *booklet layout*; imposition/bleed/CMYK for POD are R-9 follow-ups.
-// 1024² art on an 8in page ≈ 128 DPI — screen/home-print fine, POD needs the
-// R-9 upscale pass.
+// Page art is UPSCALED to 300 DPI at trim size (R-9) with lanczos and embedded
+// as high-quality JPEG (keeps a 10-page book's PDF manageable). Imposition/
+// bleed/CMYK for POD are the remaining R-9 follow-ups.
 
 const PAGE = 576; // 8in × 72pt
+const PRINT_PX = 2400; // 8in × 300 DPI
+
+/** Upscale page art to print resolution. Cover thumbnails skip this. */
+async function toPrintJpeg(data: Buffer): Promise<Buffer> {
+  return sharp(data)
+    .resize(PRINT_PX, PRINT_PX, { fit: "cover", kernel: "lanczos3" })
+    .jpeg({ quality: 90 })
+    .toBuffer();
+}
 
 interface PageArt {
   beat: StoryBeat;
@@ -69,9 +79,8 @@ export async function renderBookPdf(project: Project, root?: string): Promise<Bu
     if (beat.art) {
       const img = await readImage(project.id, beat.art.file, root);
       if (img) {
-        const format = FORMAT_BY_MIME[img.mimeType];
-        if (!format) throw new Error(`PDF export supports png/jpeg art only (got ${img.mimeType}).`);
-        image = { data: img.bytes, format };
+        if (!FORMAT_BY_MIME[img.mimeType]) throw new Error(`PDF export supports png/jpeg art only (got ${img.mimeType}).`);
+        image = { data: await toPrintJpeg(img.bytes), format: "jpg" };
       }
     }
     pages.push({ beat, image });
