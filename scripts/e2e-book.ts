@@ -22,6 +22,20 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { "content-type": "application/json", ...init?.headers },
   });
+  const contentType = res.headers.get("content-type") ?? "";
+  if (contentType.includes("ndjson")) {
+    // Streaming generate endpoint (W-3): progress lines, then {done}/{error}.
+    let done: T | undefined;
+    let error: string | undefined;
+    for (const line of (await res.text()).split("\n")) {
+      if (!line.trim()) continue;
+      const msg = JSON.parse(line) as { done?: T; error?: string };
+      if (msg.done) done = msg.done;
+      if (msg.error) error = msg.error;
+    }
+    if (error || !done) throw new Error(`${init?.method ?? "GET"} ${path} → stream: ${error ?? "no result"}`);
+    return done;
+  }
   const data = (await res.json()) as T & { error?: string };
   if (!res.ok) throw new Error(`${init?.method ?? "GET"} ${path} → ${res.status}: ${data.error}`);
   return data;

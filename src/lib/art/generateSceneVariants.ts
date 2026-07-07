@@ -1,5 +1,5 @@
 import { generateMultiCharacterScene, generateStandaloneScene, type CharacterRef, type EnvironmentRef } from "./geminiProvider";
-import { runGate } from "./outputGate/runGate";
+import { runGate, type GateOptions } from "./outputGate/runGate";
 import { defaultChecks } from "./outputGate/checks";
 import { COST_PER_IMAGE_USD } from "./cost";
 import type { HouseStyle } from "./types";
@@ -17,7 +17,7 @@ export async function generateSceneVariants(args: {
   characters: CharacterRef[];
   /** Locked setting reference — scenes condition on it when the beat has one. */
   environment?: EnvironmentRef;
-  opts?: { variantsWanted?: number; maxAttempts?: number };
+  opts?: { variantsWanted?: number; maxAttempts?: number; onEvent?: GateOptions["onEvent"] };
 }): Promise<VariantResult> {
   const { scenePrompt, style, characters, environment } = args;
   const variantsWanted = args.opts?.variantsWanted ?? 3;
@@ -40,7 +40,7 @@ export async function generateSceneVariants(args: {
       style,
       references: characters.map((c) => ({ label: c.label, base64: c.base64, mimeType: c.mimeType })),
     },
-    { variantsWanted, maxAttempts }
+    { variantsWanted, maxAttempts, onEvent: args.opts?.onEvent }
   );
 
   return {

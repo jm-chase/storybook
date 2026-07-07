@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProject } from "@/lib/project/store";
 import { generateEnvironmentVariants } from "@/lib/art/generateEnvironmentVariants";
 import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
+import { streamNdjson } from "@/lib/api/streamNdjson";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -20,21 +21,16 @@ export async function POST(_req: Request, { params }: Params) {
   const style = HOUSE_STYLE_BY_ID[project.styleId];
   if (!style) return NextResponse.json({ error: "project has an unknown style" }, { status: 500 });
 
-  try {
-    const result = await generateEnvironmentVariants(environment.description, style);
+  return streamNdjson(async (emitProgress) => {
+    const result = await generateEnvironmentVariants(environment.description, style, { onEvent: emitProgress });
     if (result.variants.length === 0) {
-      return NextResponse.json(
-        { error: "No clean variants passed the gate. Try again or adjust the description.", attempts: result.attempts },
-        { status: 502 }
-      );
+      throw new Error("No clean variants passed the gate. Try again or adjust the description.");
     }
-    return NextResponse.json({
+    return {
       variants: result.variants.map((v) => `data:${v.mimeType};base64,${v.base64}`),
       attempts: result.attempts,
       costUsd: result.costUsd,
       satisfied: result.satisfied,
-    });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
-  }
+    };
+  });
 }

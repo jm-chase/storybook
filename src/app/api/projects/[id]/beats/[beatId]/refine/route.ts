@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProject, readImage } from "@/lib/project/store";
 import { refineImageVariants, MAX_FIX_INSTRUCTION } from "@/lib/art/refineImage";
 import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
+import { streamNdjson } from "@/lib/api/streamNdjson";
 
 // Point-to-fix a beat's LOCKED art: say the fix plainly, get gate-clean edited
 // variants that changed only that. Lock the winner via the normal lock route.
@@ -44,26 +45,22 @@ export async function POST(req: Request, { params }: Params) {
   const img = await readImage(project.id, beat.art.file);
   if (!img) return NextResponse.json({ error: "The locked art file is missing." }, { status: 500 });
 
-  try {
+  return streamNdjson(async (emitProgress) => {
     const result = await refineImageVariants({
       base64: img.bytes.toString("base64"),
       mimeType: img.mimeType,
       instruction,
       style,
+      opts: { onEvent: emitProgress },
     });
     if (result.variants.length === 0) {
-      return NextResponse.json(
-        { error: "No edit passed the gate — try wording the fix differently.", attempts: result.attempts, rejected: result.rejected },
-        { status: 502 }
-      );
+      throw new Error("No edit passed the gate — try wording the fix differently.");
     }
-    return NextResponse.json({
+    return {
       variants: result.variants.map((v) => `data:${v.mimeType};base64,${v.base64}`),
       attempts: result.attempts,
       costUsd: result.costUsd,
       satisfied: result.satisfied,
-    });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
-  }
+    };
+  });
 }

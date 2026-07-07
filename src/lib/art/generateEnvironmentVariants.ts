@@ -1,5 +1,5 @@
 import { generateStandaloneScene } from "./geminiProvider";
-import { runGate } from "./outputGate/runGate";
+import { runGate, type GateOptions } from "./outputGate/runGate";
 import { defaultChecks } from "./outputGate/checks";
 import { COST_PER_IMAGE_USD } from "./cost";
 import type { HouseStyle } from "./types";
@@ -13,7 +13,7 @@ import type { VariantResult } from "./generateCharacterVariants";
 export async function generateEnvironmentVariants(
   description: string,
   style: HouseStyle,
-  opts: { variantsWanted?: number; maxAttempts?: number } = {}
+  opts: { variantsWanted?: number; maxAttempts?: number; onEvent?: GateOptions["onEvent"] } = {}
 ): Promise<VariantResult> {
   const variantsWanted = opts.variantsWanted ?? 3;
   const maxAttempts = opts.maxAttempts ?? 6;
@@ -30,7 +30,7 @@ export async function generateEnvironmentVariants(
     generate,
     defaultChecks(),
     { brief: { name: "", description, styleId: style.id }, style },
-    { variantsWanted, maxAttempts }
+    { variantsWanted, maxAttempts, onEvent: opts.onEvent }
   );
 
   return {

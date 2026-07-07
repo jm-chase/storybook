@@ -28,6 +28,28 @@ interface GenResponse {
   fields?: Record<string, { message: string }>;
 }
 
+/** Mirrors GateProgress (lib/art/outputGate/runGate). */
+interface Progress {
+  phase: "generating" | "checking" | "accepted" | "rejected";
+  attempt: number;
+  cleanSoFar: number;
+  wanted: number;
+  reason?: string;
+}
+
+function progressText(p: Progress): string {
+  switch (p.phase) {
+    case "generating":
+      return `🎨 Drawing option ${Math.min(p.cleanSoFar + 1, p.wanted)} of ${p.wanted}…`;
+    case "checking":
+      return "🔍 Checking safety, quality & consistency…";
+    case "accepted":
+      return `✓ Option ${p.cleanSoFar} looks good${p.cleanSoFar < p.wanted ? " — drawing the next…" : "…"}`;
+    case "rejected":
+      return `↻ Caught a flaw (${(p.reason ?? "defect").slice(0, 60)}) — redrawing…`;
+  }
+}
+
 export default function StudioPage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [project, setProject] = useState<Project | null>(null);
@@ -1262,13 +1284,42 @@ function VariantChooser({
 
   async function generate() {
     setBusy(true);
-    setMeta("");
+    setMeta("Starting…");
     try {
       const res = await requestVariants();
-      const data: GenResponse = await res.json();
-      if (!res.ok) {
-        setMeta(`⚠️ ${data.error ?? "Generation failed."}`);
-        return;
+      const contentType = res.headers.get("content-type") ?? "";
+      let data: GenResponse | null = null;
+      if (!res.ok || !contentType.includes("ndjson") || !res.body) {
+        // Validation failures (4xx) and non-streaming responses are plain JSON.
+        data = (await res.json()) as GenResponse;
+        if (!res.ok) {
+          setMeta(`⚠️ ${data.error ?? "Generation failed."}`);
+          return;
+        }
+      } else {
+        // NDJSON stream (W-3): {progress} lines, then one {done} or {error}.
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let streamError: string | null = null;
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const msg = JSON.parse(line) as { progress?: Progress; done?: GenResponse; error?: string };
+            if (msg.progress) setMeta(progressText(msg.progress));
+            else if (msg.error) streamError = msg.error;
+            else if (msg.done) data = msg.done;
+          }
+        }
+        if (streamError || !data) {
+          setMeta(`⚠️ ${streamError ?? "Generation failed."}`);
+          return;
+        }
       }
       setVariants(data.variants ?? []);
       setSelected(0);

@@ -2,13 +2,11 @@ import { NextResponse } from "next/server";
 import { buildCharacterBrief } from "@/lib/art/brief";
 import { HOUSE_STYLES, HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
 import { generateCharacterVariants } from "@/lib/art/generateCharacterVariants";
+import { streamNdjson } from "@/lib/api/streamNdjson";
 
 // Server-side character generation (W-1 / LG-6): the browser calls THIS endpoint;
 // the Gemini key never leaves the server. Generation runs through the Output Gate
-// and returns 3 clean variants for the parent to choose from.
-//
-// NOTE (W-3): this is synchronous — generating + gating several images can take
-// ~30s. Fine for local dev; production should stream progress (SSE) instead.
+// and STREAMS progress (W-3) — NDJSON {progress} lines, then {done}/{error}.
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -35,22 +33,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not configured on the server." }, { status: 500 });
   }
 
-  try {
-    const style = HOUSE_STYLE_BY_ID[built.brief.styleId];
-    const result = await generateCharacterVariants(built.brief, style);
+  const style = HOUSE_STYLE_BY_ID[built.brief.styleId];
+  return streamNdjson(async (emitProgress) => {
+    const result = await generateCharacterVariants(built.brief, style, { onEvent: emitProgress });
     if (result.variants.length === 0) {
-      return NextResponse.json(
-        { error: "No clean variants passed the gate. Try again or adjust the description.", attempts: result.attempts },
-        { status: 502 }
-      );
+      throw new Error("No clean variants passed the gate. Try again or adjust the description.");
     }
-    return NextResponse.json({
+    return {
       variants: result.variants.map((v) => `data:${v.mimeType};base64,${v.base64}`),
       attempts: result.attempts,
       costUsd: result.costUsd,
       satisfied: result.satisfied,
-    });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
-  }
+    };
+  });
 }

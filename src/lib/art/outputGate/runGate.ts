@@ -9,6 +9,19 @@ export interface GateOptions {
   variantsWanted: number;
   /** Hard cap on total generations — the cost/latency budget. */
   maxAttempts: number;
+  /** Progress events (W-3) — drives live status in the studio. */
+  onEvent?: (e: GateProgress) => void;
+}
+
+export interface GateProgress {
+  phase: "generating" | "checking" | "accepted" | "rejected";
+  /** 1-based generation attempt. */
+  attempt: number;
+  /** Clean variants collected so far (after this event, for accepted). */
+  cleanSoFar: number;
+  wanted: number;
+  /** First failure reason, for "rejected". */
+  reason?: string;
 }
 
 export interface RejectedCandidate {
@@ -41,15 +54,22 @@ export async function runGate(
   const rejected: RejectedCandidate[] = [];
   let attempts = 0;
 
+  const emit = (e: Omit<GateProgress, "cleanSoFar" | "wanted">) =>
+    opts.onEvent?.({ ...e, cleanSoFar: variants.length, wanted: opts.variantsWanted });
+
   while (variants.length < opts.variantsWanted && attempts < opts.maxAttempts) {
     attempts++;
+    emit({ phase: "generating", attempt: attempts });
     const candidate = await generate();
+    emit({ phase: "checking", attempt: attempts });
     const results = await Promise.all(checks.map((c) => c.run(candidate, ctx)));
     const failures = results.filter((r) => r.status === "fail");
     if (failures.length === 0) {
       variants.push(candidate);
+      emit({ phase: "accepted", attempt: attempts });
     } else {
       rejected.push({ candidate, failures });
+      emit({ phase: "rejected", attempt: attempts, reason: failures[0].reason });
     }
   }
 

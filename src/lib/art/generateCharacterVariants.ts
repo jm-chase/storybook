@@ -1,5 +1,5 @@
 import { generateCharacterSheet } from "./geminiProvider";
-import { runGate } from "./outputGate/runGate";
+import { runGate, type GateOptions } from "./outputGate/runGate";
 import { defaultChecks } from "./outputGate/checks";
 import { COST_PER_IMAGE_USD } from "./cost";
 import type { CharacterBrief, HouseStyle } from "./types";
@@ -24,7 +24,7 @@ export interface VariantResult {
 export async function generateCharacterVariants(
   brief: CharacterBrief,
   style: HouseStyle,
-  opts: { variantsWanted?: number; maxAttempts?: number } = {}
+  opts: { variantsWanted?: number; maxAttempts?: number; onEvent?: GateOptions["onEvent"] } = {}
 ): Promise<VariantResult> {
   const variantsWanted = opts.variantsWanted ?? 3;
   const maxAttempts = opts.maxAttempts ?? 6; // reroll/cost budget
@@ -34,7 +34,7 @@ export async function generateCharacterVariants(
     return { base64: img.base64, mimeType: img.mimeType };
   };
 
-  const outcome = await runGate(generate, defaultChecks(), { brief, style }, { variantsWanted, maxAttempts });
+  const outcome = await runGate(generate, defaultChecks(), { brief, style }, { variantsWanted, maxAttempts, onEvent: opts.onEvent });
 
   return {
     variants: outcome.variants,
