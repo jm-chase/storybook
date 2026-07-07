@@ -3,17 +3,26 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { Project, ProjectSummary } from "./types";
 import { summarize } from "./types";
+import { getLocalUserId } from "../auth/user";
 
-// Filesystem project store (R-6). Server-side only. Layout:
+// Filesystem project store (R-6). Server-side only. Layout (tenant-shaped for
+// B-8 — one directory per user, "local" until accounts exist):
 //
-//   projects/<projectId>/project.json      — the Project document
-//   projects/<projectId>/images/<file>     — locked reference images
+//   projects/<userId>/<projectId>/project.json  — the Project document
+//   projects/<userId>/<projectId>/images/<file> — locked reference images
 //
-// The root is a parameter (defaulting to <cwd>/projects) so tests run against a
-// scratch dir. All ids/filenames pass a strict allowlist before touching the
-// filesystem — no caller-supplied path segments.
+// The root is a parameter (defaulting to the local user's directory) so tests
+// run against a scratch dir and hosted builds pass userRoot(<session user>).
+// All ids/filenames pass a strict allowlist before touching the filesystem —
+// no caller-supplied path segments.
 
-const DEFAULT_ROOT = () => path.join(process.cwd(), "projects");
+/** A user's project root — hosted routes pass userRoot(await getCurrentUserId()). */
+export function userRoot(userId: string): string {
+  assertSafeId(userId, "user id");
+  return path.join(process.cwd(), "projects", userId);
+}
+
+const DEFAULT_ROOT = () => userRoot(getLocalUserId());
 
 const SAFE_ID = /^[a-z0-9-]+$/;
 const SAFE_FILENAME = /^[a-z0-9][a-z0-9.-]*$/;

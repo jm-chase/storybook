@@ -488,11 +488,20 @@ function ProjectView({
         )}
         {project.storyboard.length > 0 && (
           <a
-            href={`/api/projects/${project.id}/pdf?bleed=1`}
-            title="For print-on-demand services: adds the standard 0.125in bleed on every edge"
+            href={`/api/projects/${project.id}/pdf?pod=1`}
+            title="The orderable interior: bleed, front matter, cast gallery, padded to the print-shop page minimum"
             style={{ ...btn(false), display: "inline-block", textDecoration: "none" }}
           >
-            🖨️ Print-shop PDF (with bleed)
+            🖨️ Print-shop interior
+          </a>
+        )}
+        {project.storyboard.length > 0 && (
+          <a
+            href={`/api/projects/${project.id}/cover`}
+            title="Wraparound print cover: back, spine, and front in one spread"
+            style={{ ...btn(false), display: "inline-block", textDecoration: "none" }}
+          >
+            📔 Print-shop cover
           </a>
         )}
         {project.cast.some((c) => c.locked) && <SeriesButton project={project} onSwitch={onProject} />}
