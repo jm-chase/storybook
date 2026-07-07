@@ -36,8 +36,8 @@ Only `generateCharacterSheet`. The real flow needs `generateScene(characterRef, 
 ### R-6. No book/project data model or persistence — ✅ PARTIALLY RESOLVED (2026-07-06)
 "Lock the book" means persisting locked character/env/style + storyboard + images. **Built:** `Project`/`CastMember` schema + filesystem store (`src/lib/project`), full API, cast studio — projects with locked casts now survive restarts. **Remaining:** the storyboard/pages/environment half of the model (next slice), and a cloud store swap at hosting.
 
-### R-7. Blank-box returns — the "we help the parent" promise is unbuilt
-We removed the prompt box for safety, then reintroduced a freeform box for art. The product's stated value is *helping parents who can't verbalize craft* — but right now it's an empty textarea. Needs scaffolding: example chips, guided trait pickers, suggestion prompts, sensible defaults.
+### R-7. Blank-box returns — ✅ FIRST PASS RESOLVED (2026-07-07)
+The product's stated value is *helping parents who can't verbalize craft*. **Built:** curated starter chips on every blank creative box (character per role + coaching hint, scenes from actual cast names, settings), shown only while empty, click-to-fill-then-edit; plus the templates skin (D-023 #2) removes the blank box entirely for the mass market. **Later:** guided trait pickers, AI-suggested next scenes.
 
 ---
 

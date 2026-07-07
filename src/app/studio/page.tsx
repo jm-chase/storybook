@@ -6,6 +6,7 @@ import { MAX_DESCRIPTION } from "@/lib/art/brief";
 import { CAST_ROLES, type CastRole, type Project, type ProjectSummary, type StoryBeat } from "@/lib/project/types";
 import { MAX_SCENE_DESCRIPTION, MAX_PAGE_TEXT } from "@/lib/project/beats";
 import { BOOK_TEMPLATES } from "@/content/bookTemplates";
+import { CHARACTER_CHIPS, CHARACTER_HINT, SETTING_CHIPS, sceneChips } from "@/content/suggestions";
 
 // The cast studio (D-022/D-023): a persisted book PROJECT with a locked CAST.
 // Create/open a project → pick the book's style → add characters by role →
@@ -346,6 +347,9 @@ function TemplateSection({ onCreated }: { onCreated: (p: Project) => void }) {
             />
             {errors.heroDescription && <Err>{errors.heroDescription}</Err>}
           </label>
+          {heroDescription.length === 0 && (
+            <Chips options={CHARACTER_CHIPS.hero} onPick={setHeroDescription} hint={CHARACTER_HINT} />
+          )}
           <button onClick={create} disabled={busy} style={{ ...btn(true), marginTop: "0.6rem" }}>
             {busy ? "Creating…" : `Create “${chosen.title.replace("{hero}", heroName || "…")}”`}
           </button>
@@ -678,6 +682,18 @@ function SettingsSection({ project, onProject }: { project: Project; onProject: 
               />
               {errors.description && <Err>{errors.description}</Err>}
             </label>
+            {name.length === 0 && description.length === 0 && (
+              <Chips
+                options={SETTING_CHIPS.map((s) => s.name)}
+                onPick={(picked) => {
+                  const s = SETTING_CHIPS.find((c) => c.name === picked);
+                  if (s) {
+                    setName(s.name);
+                    setDescription(s.description);
+                  }
+                }}
+              />
+            )}
             <button onClick={add} disabled={busy} style={{ ...btn(true), marginTop: "0.6rem" }}>
               {busy ? "Adding…" : "Add setting"}
             </button>
@@ -992,6 +1008,14 @@ function AddBeatCard({
         <span style={{ fontSize: "0.68rem", opacity: 0.55 }}>{sceneDescription.length}/{MAX_SCENE_DESCRIPTION}</span>
         {errors.sceneDescription && <Err>{errors.sceneDescription}</Err>}
       </label>
+      {sceneDescription.length === 0 && (
+        <Chips
+          options={sceneChips(
+            (castIds.length > 0 ? project.cast.filter((m) => castIds.includes(m.id)) : project.cast).map((m) => m.name)
+          )}
+          onPick={setSceneDescription}
+        />
+      )}
       <label style={{ display: "block", marginBottom: "0.5rem" }}>
         <span style={labelText}>Page text (typeset on the page — leave empty for a wordless page)</span>
         <textarea
@@ -1290,6 +1314,7 @@ function AddMemberCard({
         </span>
         {errors.description && <Err>{errors.description}</Err>}
       </label>
+      {description.length === 0 && <Chips options={CHARACTER_CHIPS[role]} onPick={setDescription} hint={CHARACTER_HINT} />}
       <button onClick={add} disabled={busy} style={{ ...btn(true), marginTop: "0.6rem" }}>
         {busy ? "Adding…" : "Add to cast"}
       </button>
@@ -1518,4 +1543,34 @@ function btnSmall(primary: boolean): React.CSSProperties {
 
 function Err({ children }: { children: React.ReactNode }) {
   return <span style={{ color: "#a8442a", fontSize: "0.75rem", display: "block" }}>{children}</span>;
+}
+
+/** R-7 scaffolding: "try one" starters shown while a box is empty — click to fill, then edit. */
+function Chips({ options, onPick, hint }: { options: string[]; onPick: (v: string) => void; hint?: string }) {
+  return (
+    <div style={{ margin: "0.3rem 0 0.2rem" }}>
+      {hint && <span style={{ fontSize: "0.68rem", opacity: 0.55, display: "block", marginBottom: 4 }}>{hint}</span>}
+      <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+        {options.map((o) => (
+          <button
+            key={o}
+            type="button"
+            onClick={() => onPick(o)}
+            style={{
+              fontSize: "0.7rem",
+              padding: "0.2rem 0.55rem",
+              borderRadius: 999,
+              border: "1px dashed #c2724f66",
+              background: "#fff",
+              cursor: "pointer",
+              color: "#7a4a35",
+              textAlign: "left",
+            }}
+          >
+            {o}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
