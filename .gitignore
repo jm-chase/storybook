@@ -29,6 +29,7 @@ next-env.d.ts
 # spike output (generated images — don't commit)
 /spike-output/
 /multichar-output/
+/eval-output/
 
 # os / editor
 .DS_Store

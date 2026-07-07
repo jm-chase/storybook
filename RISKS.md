@@ -46,7 +46,7 @@ We removed the prompt box for safety, then reintroduced a freeform box for art. 
 - **R-8. Story↔art integration undefined.** Words (rhythm/pacing/page-turns) + art + lesson-explicitness dial must combine in the storyboard; no model for that yet. Prose is parked but the integration seam isn't designed.
 - **R-9. Print pipeline unproven — and upscaling confirmed needed (2026-06-26).** Gemini output is **1024×1024** (~3.4in @300 DPI). A picture-book page (~8in) needs ~2.3× **upscaling** (`sharp` resize and/or an AI upscaler). Plus full-bleed raster through booklet imposition and RGB→CMYK for POD. PDF/booklet path still unbuilt.
 - **R-10. Mobile.** Parents will create on phones; current UI is desktop-ish inline styles.
-- **R-11. No eval/integration tests for the art path.** Only pure-logic unit tests (good ones). The thing that matters most (consistency) has no harness — ties to R-1.
+- **R-11. No eval harness for the art path — ✅ RESOLVED (2026-07-07).** `npm run eval:consistency`: fixed versioned battery (2 briefs × 3 scenes, 2 styles) scored by the gate's own consistency + quality checks; JSON report per run keyed by model id (A/B models via `GEMINI_IMAGE_MODEL`). **Baseline on gemini-2.5-flash-image: consistency 6/6, quality 5/6** (1 garbled-text-on-signage defect — the gate's reroll absorbs this class in production). $0.31/run.
 - **R-12. SDK debt.** `@anthropic-ai/sdk` 0.68 predates `output_config.format` (D-010). Revisit on integration.
 - **R-13. Failure-path UX undesigned.** Generation failure, moderation block, rate limit, partial book — no flows.
 - **R-14. Accounts/payments/COPPA resurface at hosting.** Fine to defer, but the data model (R-6) should not bake in assumptions that block them.
