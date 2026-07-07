@@ -8,9 +8,15 @@ import type { CastRole } from "../lib/project/types";
 // {hero} in any text is replaced with the validated hero name at instantiation.
 //
 // LEGAL (D-024): classics must be PUBLIC DOMAIN — verified per title before
-// adding. Alice in Wonderland: Carroll d. 1898, published 1865 — public domain
-// worldwide. No third-party illustration trade dress is referenced (D-016);
-// character looks are described in our own words.
+// adding. No third-party illustration trade dress is referenced (D-016);
+// character looks are described in our own words. Verified titles:
+// - Alice in Wonderland: Carroll d. 1898, published 1865 — PD worldwide.
+// - Aesop's fables (Tortoise & Hare): antiquity — PD worldwide.
+// - Goldilocks: traditional; Southey's telling 1837 — PD worldwide.
+// - The Three Little Pigs: traditional; Jacobs' telling 1890 — PD worldwide.
+// - The Wonderful Wizard of Oz: Baum d. 1919, published 1900 — PD worldwide.
+//   BOOK elements only: SILVER shoes, no MGM film trade dress (ruby slippers,
+//   film character likenesses are NOT public domain).
 
 export interface TemplateCastMember {
   role: CastRole;
@@ -158,6 +164,217 @@ export const BOOK_TEMPLATES: BookTemplate[] = [
         sceneDescription: "the hero wakes under the riverbank tree at sunset, a white rabbit-shaped cloud in the sky, Alice's book lying open in the grass",
         text: "Was it a dream? The clouds weren't telling.",
         castNames: ["hero"],
+      },
+    ],
+  },
+  {
+    id: "tortoise-and-hare",
+    kind: "classic",
+    title: "{hero} and the Great Race",
+    blurb: "Aesop's slow-and-steady classic — with your child as the race judge. (Public domain, retold.)",
+    defaultStyleId: "storybook-ink",
+    cast: [
+      {
+        role: "friend",
+        name: "Tortoise",
+        description:
+          "a calm old tortoise with a mossy-green domed shell, kind heavy-lidded eyes, and steady wrinkled legs",
+      },
+      {
+        role: "sidekick",
+        name: "Hare",
+        description:
+          "a lanky boastful brown hare with long swept-back ears, a cocky grin, and one eyebrow always raised",
+      },
+    ],
+    beats: [
+      {
+        sceneDescription: "the hero holds a checkered flag between the tortoise and the hare at a chalk starting line on a country lane, animals of the meadow gathered to watch",
+        text: "“A race?” laughed Hare. “Against YOU?” Tortoise just smiled. {hero} raised the flag.",
+        castNames: ["hero", "Tortoise", "Hare"],
+      },
+      {
+        sceneDescription: "the hare rockets away down the lane in a cloud of dust while the tortoise takes one slow careful step, the hero watching wide-eyed",
+        text: "ZOOM went Hare. Step… went Tortoise. Step. Step. Step.",
+        castNames: ["hero", "Tortoise", "Hare"],
+      },
+      {
+        sceneDescription: "the hare naps smugly under a shady oak tree at the halfway stone, arms behind his head, one ear flopped over his eyes",
+        text: "“Plenty of time,” yawned Hare. And the afternoon was warm. And the grass was soft…",
+        castNames: ["Hare"],
+      },
+      {
+        sceneDescription: "the tortoise plods past the sleeping hare without a single glance, the hero tiptoeing alongside with a finger to their lips",
+        text: "Step. Step. Step. {hero} didn't say a word.",
+        castNames: ["hero", "Tortoise", "Hare"],
+      },
+      {
+        sceneDescription: "the hare wakes and sprints in a panic as the tortoise crosses the finish-line ribbon, the hero cheering with both arms up",
+        text: "Hare ran faster than fast. But slow and steady had already won.",
+        castNames: ["hero", "Tortoise", "Hare"],
+      },
+      {
+        sceneDescription: "the tortoise and the hare share blackberries with the hero on the finish line in golden evening light, the checkered flag planted in the grass",
+        text: "“Next time,” said Hare, “no naps.” “Next time,” said Tortoise, “more blackberries.”",
+        castNames: ["hero", "Tortoise", "Hare"],
+      },
+    ],
+  },
+  {
+    id: "goldilocks",
+    kind: "classic",
+    title: "{hero} and the Three Bears",
+    blurb: "Porridge, chairs, and beds — just right, with your child along. (Public domain, retold.)",
+    defaultStyleId: "painted-wonder",
+    cast: [
+      {
+        role: "friend",
+        name: "Goldilocks",
+        description:
+          "a small bold girl with a cloud of golden curls, rosy cheeks, a simple country dress and scuffed boots",
+      },
+      {
+        role: "sidekick",
+        name: "Little Bear",
+        description: "a round-eared honey-brown bear cub with a friendly open face and a too-small red chair he loves",
+      },
+    ],
+    beats: [
+      {
+        sceneDescription: "the hero and Goldilocks discover a cozy cottage deep in a sun-dappled forest, its door standing open, smoke curling from the chimney",
+        text: "Deep in the woods stood a little house. The door was open. (It really shouldn't have been.)",
+        castNames: ["hero", "Goldilocks"],
+      },
+      {
+        sceneDescription: "the hero and Goldilocks stand before three steaming porridge bowls on a wooden table — a huge one, a middle one, and a tiny one",
+        text: "Too hot. Too cold. And one — just right. “We should ask first,” whispered {hero}. Too late.",
+        castNames: ["hero", "Goldilocks"],
+      },
+      {
+        sceneDescription: "Goldilocks sits in a tiny broken chair looking sheepish while the hero tries to fix it, two bigger chairs standing behind",
+        text: "Too hard. Too soft. And one — just… CRACK.",
+        castNames: ["hero", "Goldilocks"],
+      },
+      {
+        sceneDescription: "the hero and Goldilocks fast asleep in a small wooden bed under a patchwork quilt, moonlight through a round window",
+        text: "Too high. Too lumpy. And one — just right. Just right is very good for sleeping.",
+        castNames: ["hero", "Goldilocks"],
+      },
+      {
+        sceneDescription: "a friendly bear cub peers at the waking hero and Goldilocks over the edge of the bed, his big parents' shadows in the doorway",
+        text: "“Someone,” said a small bear voice, “is sleeping in MY bed.”",
+        castNames: ["hero", "Goldilocks", "Little Bear"],
+      },
+      {
+        sceneDescription: "the hero, Goldilocks, and the bear cub share a new pot of porridge together at the table, the mended little chair wearing a bow",
+        text: "So they said sorry. And fixed the chair. And porridge, it turns out, is even better shared.",
+        castNames: ["hero", "Goldilocks", "Little Bear"],
+      },
+    ],
+  },
+  {
+    id: "three-little-pigs",
+    kind: "classic",
+    title: "{hero} and the Three Little Pigs",
+    blurb: "Straw, sticks, bricks — and one out-of-breath wolf. (Public domain, retold.)",
+    defaultStyleId: "wobbly-world",
+    cast: [
+      {
+        role: "friend",
+        name: "Brick Pig",
+        description:
+          "a sturdy sensible pig in denim overalls with a trowel in her pocket and a proud, patient smile",
+      },
+      {
+        role: "adversary",
+        name: "the Wolf",
+        description:
+          "a scraggly grey wolf with huge cheeks made for huffing and puffing, more windbag than scary",
+      },
+    ],
+    beats: [
+      {
+        sceneDescription: "the hero stacks straw for a wobbly little house in a sunny meadow while a grey wolf watches from behind a distant hedge",
+        text: "The first house was straw. It went up before lunch. “Hmm,” said {hero}.",
+        castNames: ["hero", "the Wolf"],
+      },
+      {
+        sceneDescription: "the wolf takes an enormous breath, cheeks like balloons, as the straw house explodes into flying golden wisps, the hero dashing away",
+        text: "“I'll HUFF and I'll PUFF—” And he did. Oh, he did.",
+        castNames: ["hero", "the Wolf"],
+      },
+      {
+        sceneDescription: "the stick house rattles and clatters apart as the wolf blows, sticks whirling like a windstorm, the hero pointing up the lane toward a brick house",
+        text: "Sticks flew like a magic trick. “The brick house!” shouted {hero}. “RUN!”",
+        castNames: ["hero", "the Wolf"],
+      },
+      {
+        sceneDescription: "the hero and the brick pig peek from the window of a solid little brick house while the wolf, red-faced and dizzy, blows with all his might",
+        text: "He huffed. He puffed. He huffed-and-puffed. The bricks did not care one bit.",
+        castNames: ["hero", "Brick Pig", "the Wolf"],
+      },
+      {
+        sceneDescription: "the exhausted wolf lies flat on his back in the garden seeing stars while the hero and the brick pig offer him a glass of lemonade",
+        text: "All that puffing makes a wolf thirsty. “Truce?” he wheezed. “Truce,” said {hero}.",
+        castNames: ["hero", "Brick Pig", "the Wolf"],
+      },
+      {
+        sceneDescription: "the hero, the brick pig, and the wolf lay bricks together for a fourth little house at sunset, the wolf wearing a tiny hard hat",
+        text: "The fourth house was brick too. Built by everyone. Blown down by no one.",
+        castNames: ["hero", "Brick Pig", "the Wolf"],
+      },
+    ],
+  },
+  {
+    id: "road-to-oz",
+    kind: "classic",
+    title: "{hero} and the Road of Yellow Brick",
+    blurb: "Brains, heart, courage — Baum's classic road, walked with your child. (Public domain, retold from the 1900 book.)",
+    defaultStyleId: "torn-and-bright",
+    cast: [
+      {
+        role: "friend",
+        name: "Dorothy",
+        description:
+          "a kind farm girl with brown braids, a simple blue-and-white checked gingham dress, and shining SILVER shoes",
+      },
+      {
+        role: "sidekick",
+        name: "Scarecrow",
+        description:
+          "a cheerful floppy scarecrow of straw and patched blue cloth, a painted friendly face, and a pointed hat",
+      },
+    ],
+    beats: [
+      {
+        sceneDescription: "the hero and Dorothy stand at the start of a road paved with yellow brick winding through a bright strange countryside, a little dog trotting ahead",
+        text: "The road was yellow. The bricks were bright. And it went exactly one way: somewhere.",
+        castNames: ["hero", "Dorothy"],
+      },
+      {
+        sceneDescription: "the hero and Dorothy help the scarecrow down from his pole in a cornfield, straw sticking out everywhere",
+        text: "“If I only had a brain,” sighed the Scarecrow, “I'd think of a way down.” {hero} thought of one first.",
+        castNames: ["hero", "Dorothy", "Scarecrow"],
+      },
+      {
+        sceneDescription: "the hero, Dorothy, and the scarecrow cross a deep field of enormous scarlet poppies, holding hands in a chain, eyelids heavy",
+        text: "The poppies smelled like naptime. “Don't stop walking,” whispered Dorothy. They didn't.",
+        castNames: ["hero", "Dorothy", "Scarecrow"],
+      },
+      {
+        sceneDescription: "the hero, Dorothy, and the scarecrow catch first sight of a glittering green city on the horizon at the end of the yellow brick road",
+        text: "And there it was — a city green as summer, bright as morning. Almost there. Almost.",
+        castNames: ["hero", "Dorothy", "Scarecrow"],
+      },
+      {
+        sceneDescription: "the hero, Dorothy, and the scarecrow rest on the yellow bricks sharing bread and apples, silver shoes gleaming, the green city glowing behind them",
+        text: "“Brains are good,” said the Scarecrow. “Friends are better,” said Dorothy. {hero} agreed with both.",
+        castNames: ["hero", "Dorothy", "Scarecrow"],
+      },
+      {
+        sceneDescription: "the hero waves goodbye at the city gates as Dorothy's silver shoes sparkle, the yellow brick road stretching home behind them into the sunset",
+        text: "Every road goes two ways, you know. One way is somewhere. The other way is home.",
+        castNames: ["hero", "Dorothy"],
       },
     ],
   },
