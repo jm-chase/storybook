@@ -1,4 +1,4 @@
-import { generateMultiCharacterScene, generateStandaloneScene, type CharacterRef } from "./geminiProvider";
+import { generateMultiCharacterScene, generateStandaloneScene, type CharacterRef, type EnvironmentRef } from "./geminiProvider";
 import { runGate } from "./outputGate/runGate";
 import { defaultChecks } from "./outputGate/checks";
 import { COST_PER_IMAGE_USD } from "./cost";
@@ -15,17 +15,19 @@ export async function generateSceneVariants(args: {
   scenePrompt: string;
   style: HouseStyle;
   characters: CharacterRef[];
+  /** Locked setting reference — scenes condition on it when the beat has one. */
+  environment?: EnvironmentRef;
   opts?: { variantsWanted?: number; maxAttempts?: number };
 }): Promise<VariantResult> {
-  const { scenePrompt, style, characters } = args;
+  const { scenePrompt, style, characters, environment } = args;
   const variantsWanted = args.opts?.variantsWanted ?? 3;
   const maxAttempts = args.opts?.maxAttempts ?? 6;
 
   const generate = async (): Promise<ImageCandidate> => {
     const img =
       characters.length === 0
-        ? await generateStandaloneScene({ scenePrompt, style })
-        : await generateMultiCharacterScene({ characters, scenePrompt, style });
+        ? await generateStandaloneScene({ scenePrompt, style, environment })
+        : await generateMultiCharacterScene({ characters, scenePrompt, style, environment });
     return { base64: img.base64, mimeType: img.mimeType };
   };
 

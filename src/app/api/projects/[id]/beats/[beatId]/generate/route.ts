@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getProject, readImage } from "@/lib/project/store";
 import { generateSceneVariants } from "@/lib/art/generateSceneVariants";
 import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
-import type { CharacterRef } from "@/lib/art/geminiProvider";
+import type { CharacterRef, EnvironmentRef } from "@/lib/art/geminiProvider";
 
 // Generate the page art for a beat: every cast member in the beat conditions
 // the image with their LOCKED reference, and the gate verifies each one
@@ -47,8 +47,24 @@ export async function POST(_req: Request, { params }: Params) {
     });
   }
 
+  // Resolve the beat's setting to its locked reference, if assigned + locked.
+  let environment: EnvironmentRef | undefined;
+  if (beat.environmentId) {
+    const setting = project.environments.find((e) => e.id === beat.environmentId);
+    if (setting?.locked) {
+      const img = await readImage(project.id, setting.locked.file);
+      if (!img) return NextResponse.json({ error: `The setting's locked image file is missing.` }, { status: 500 });
+      environment = { description: setting.description, base64: img.bytes.toString("base64"), mimeType: img.mimeType };
+    } else if (setting) {
+      return NextResponse.json(
+        { error: `Lock the setting "${setting.name}" before generating this page — scenes are drawn from locked references.` },
+        { status: 409 }
+      );
+    }
+  }
+
   try {
-    const result = await generateSceneVariants({ scenePrompt: beat.sceneDescription, style, characters });
+    const result = await generateSceneVariants({ scenePrompt: beat.sceneDescription, style, characters, environment });
     if (result.variants.length === 0) {
       return NextResponse.json(
         { error: "No clean variants passed the gate. Try again or adjust the scene.", attempts: result.attempts, rejected: result.rejected },

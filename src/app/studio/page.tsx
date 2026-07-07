@@ -430,6 +430,8 @@ function ProjectView({
         />
       )}
 
+      <SettingsSection project={project} onProject={onProject} />
+
       <StoryboardSection project={project} onProject={onProject} />
 
       {project.storyboard.length > 0 && (
@@ -448,6 +450,168 @@ function ProjectView({
         </p>
       </div>
     </>
+  );
+}
+
+/* ---------------- Settings: persistent locked environments ---------------- */
+
+function SettingsSection({ project, onProject }: { project: Project; onProject: (p: Project) => void }) {
+  const [activeEnvId, setActiveEnvId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const activeEnv = project.environments.find((e) => e.id === activeEnvId) ?? null;
+
+  async function add() {
+    setBusy(true);
+    setErrors({});
+    try {
+      const res = await fetch(`/api/projects/${project.id}/environments`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, description }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setErrors(
+          d.fields
+            ? Object.fromEntries(Object.entries(d.fields as Record<string, { message: string }>).map(([k, v]) => [k, v.message]))
+            : { name: d.error ?? "Could not add the setting." }
+        );
+        return;
+      }
+      onProject(d.project);
+      setName("");
+      setDescription("");
+      setOpen(false);
+      setActiveEnvId(d.environment.id);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(envId: string) {
+    const res = await fetch(`/api/projects/${project.id}/environments/${envId}`, { method: "DELETE" });
+    const d = await res.json();
+    if (res.ok) {
+      if (activeEnvId === envId) setActiveEnvId(null);
+      onProject(d.project);
+    }
+  }
+
+  return (
+    <section style={{ margin: "1.25rem 0" }}>
+      <p style={{ fontSize: "0.9rem", fontWeight: 600 }}>The settings</p>
+      <p style={{ fontSize: "0.75rem", opacity: 0.6, marginTop: 0 }}>
+        Lock a place once — every page set there keeps the same architecture, colours, and landscape.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.6rem" }}>
+        {project.environments.map((env) => (
+          <div key={env.id} style={{ ...card(env.id === activeEnvId), cursor: "default" }}>
+            {env.locked ? (
+              <img
+                src={`/api/projects/${project.id}/images/${env.locked.file}`}
+                alt={env.name}
+                style={{ width: "100%", borderRadius: 8, display: "block", marginBottom: 6 }}
+              />
+            ) : (
+              <div
+                style={{
+                  border: "2px dashed #00000022",
+                  borderRadius: 8,
+                  height: 110,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "0.75rem",
+                  opacity: 0.6,
+                  marginBottom: 6,
+                }}
+              >
+                not locked yet
+              </div>
+            )}
+            <div style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+              🏞️ {env.name}
+              {env.locked && <span style={{ color: "#2a9d8f" }}> 🔒</span>}
+            </div>
+            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              {!env.locked && (
+                <button onClick={() => setActiveEnvId(env.id)} style={btnSmall(true)}>
+                  Generate
+                </button>
+              )}
+              <button onClick={() => remove(env.id)} style={btnSmall(false)}>
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+        {!open ? (
+          <div
+            style={{ ...card(false), display: "flex", alignItems: "center", justifyContent: "center", minHeight: 120 }}
+            onClick={() => setOpen(true)}
+          >
+            <span style={{ fontSize: "0.85rem", fontWeight: 600, opacity: 0.7 }}>＋ Add a setting</span>
+          </div>
+        ) : (
+          <div style={{ ...card(true), cursor: "default", gridColumn: "span 2", minWidth: 260 }}>
+            <p style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0 0 0.5rem" }}>Add a setting</p>
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>
+              <span style={labelText}>Name (a few words)</span>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="the old stone bridge"
+                style={inputStyle(!!errors.name)}
+              />
+              {errors.name && <Err>{errors.name}</Err>}
+            </label>
+            <label style={{ display: "block" }}>
+              <span style={labelText}>Describe the place</span>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                maxLength={320}
+                placeholder="an arched stone bridge over a slow stream, mossy stones, wooded banks"
+                style={{ ...inputStyle(!!errors.description), resize: "vertical" }}
+              />
+              {errors.description && <Err>{errors.description}</Err>}
+            </label>
+            <button onClick={add} disabled={busy} style={{ ...btn(true), marginTop: "0.6rem" }}>
+              {busy ? "Adding…" : "Add setting"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {activeEnv && !activeEnv.locked && (
+        <section key={activeEnv.id} style={{ border: "2px solid #c2724f33", borderRadius: 12, padding: "1rem", marginTop: "0.75rem" }}>
+          <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 0.25rem" }}>🏞️ Generating {activeEnv.name}</p>
+          <p style={{ fontSize: "0.78rem", opacity: 0.7, marginTop: 0 }}>{activeEnv.description}</p>
+          <VariantChooser
+            requestVariants={() =>
+              fetch(`/api/projects/${project.id}/environments/${activeEnv.id}/generate`, { method: "POST" })
+            }
+            requestLock={(dataUrl) =>
+              fetch(`/api/projects/${project.id}/environments/${activeEnv.id}/lock`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ imageDataUrl: dataUrl }),
+              })
+            }
+            onLocked={(p) => {
+              onProject(p);
+              setActiveEnvId(null);
+            }}
+            idleHint="An establishing view of the place, empty of characters — lock it and every page set there stays consistent."
+          />
+        </section>
+      )}
+    </section>
   );
 }
 
@@ -524,6 +688,9 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
                 <span style={{ fontWeight: 400, opacity: 0.65 }}>
                   {" "}
                   · {beat.castIds.length === 0 ? "no characters (establishing shot)" : beat.castIds.map((cid) => castById.get(cid)?.name ?? "?").join(", ")}
+                  {beat.environmentId && (
+                    <> · 🏞️ {project.environments.find((e) => e.id === beat.environmentId)?.name ?? "?"}</>
+                  )}
                 </span>
               </div>
               <div style={{ fontSize: "0.78rem", opacity: 0.8, marginTop: 2 }}>{beat.sceneDescription}</div>
@@ -661,6 +828,7 @@ function AddBeatCard({
   const [sceneDescription, setSceneDescription] = useState("");
   const [text, setText] = useState("");
   const [castIds, setCastIds] = useState<string[]>([]);
+  const [environmentId, setEnvironmentId] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -675,7 +843,7 @@ function AddBeatCard({
       const res = await fetch(`/api/projects/${project.id}/beats`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sceneDescription, text, castIds }),
+        body: JSON.stringify({ sceneDescription, text, castIds, environmentId }),
       });
       const d = await res.json();
       if (!res.ok) {
@@ -690,6 +858,7 @@ function AddBeatCard({
       setSceneDescription("");
       setText("");
       setCastIds([]);
+      setEnvironmentId("");
       onAdded(d.beat.id);
     } finally {
       setBusy(false);
@@ -753,6 +922,21 @@ function AddBeatCard({
         {project.cast.length === 0 && <span style={{ fontSize: "0.75rem", opacity: 0.6 }}>No cast yet — an establishing shot is fine.</span>}
       </div>
       {errors.castIds && <Err>{errors.castIds}</Err>}
+      {project.environments.length > 0 && (
+        <label style={{ display: "block", marginBottom: "0.5rem" }}>
+          <span style={labelText}>Where does it happen?</span>
+          <select value={environmentId} onChange={(e) => setEnvironmentId(e.target.value)} style={inputStyle(!!errors.environmentId)}>
+            <option value="">no locked setting</option>
+            {project.environments.map((env) => (
+              <option key={env.id} value={env.id}>
+                🏞️ {env.name}
+                {env.locked ? "" : " (not locked yet)"}
+              </option>
+            ))}
+          </select>
+          {errors.environmentId && <Err>{errors.environmentId}</Err>}
+        </label>
+      )}
       <button onClick={add} disabled={busy} style={{ ...btn(true), marginTop: "0.4rem" }}>
         {busy ? "Adding…" : "Add page"}
       </button>
@@ -776,6 +960,7 @@ function EditBeatCard({
   const [sceneDescription, setSceneDescription] = useState(beat.sceneDescription);
   const [text, setText] = useState(beat.text);
   const [castIds, setCastIds] = useState<string[]>(beat.castIds);
+  const [environmentId, setEnvironmentId] = useState(beat.environmentId ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -790,7 +975,7 @@ function EditBeatCard({
       const res = await fetch(`/api/projects/${project.id}/beats/${beat.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sceneDescription, text, castIds }),
+        body: JSON.stringify({ sceneDescription, text, castIds, environmentId }),
       });
       const d = await res.json();
       if (!res.ok) {
@@ -842,9 +1027,24 @@ function EditBeatCard({
         ))}
       </div>
       {errors.castIds && <Err>{errors.castIds}</Err>}
+      {project.environments.length > 0 && (
+        <label style={{ display: "block", marginBottom: "0.5rem" }}>
+          <span style={labelText}>Where does it happen?</span>
+          <select value={environmentId} onChange={(e) => setEnvironmentId(e.target.value)} style={inputStyle(!!errors.environmentId)}>
+            <option value="">no locked setting</option>
+            {project.environments.map((env) => (
+              <option key={env.id} value={env.id}>
+                🏞️ {env.name}
+                {env.locked ? "" : " (not locked yet)"}
+              </option>
+            ))}
+          </select>
+          {errors.environmentId && <Err>{errors.environmentId}</Err>}
+        </label>
+      )}
       {beat.art && (
         <p style={{ fontSize: "0.72rem", color: "#a8442a", margin: "0.25rem 0" }}>
-          Changing the scene or the cast clears this page&apos;s locked art (the picture would no longer match).
+          Changing the scene, cast, or setting clears this page&apos;s locked art (the picture would no longer match).
         </p>
       )}
       <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.4rem" }}>

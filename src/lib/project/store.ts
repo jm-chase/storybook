@@ -47,6 +47,7 @@ export async function createProject(
     title: input.title,
     styleId: input.styleId,
     cast: [],
+    environments: [],
     storyboard: [],
     createdAt: now,
     updatedAt: now,
@@ -61,8 +62,9 @@ export async function getProject(id: string, root: string = DEFAULT_ROOT()): Pro
   try {
     const raw = await fs.readFile(path.join(projectDir(root, id), "project.json"), "utf8");
     const project = JSON.parse(raw) as Project;
-    // Documents written before the storyboard existed lack the field — normalize.
+    // Documents written before these fields existed lack them — normalize.
     project.storyboard ??= [];
+    project.environments ??= [];
     return project;
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
@@ -135,6 +137,18 @@ export async function saveCastImage(
 ): Promise<string> {
   assertSafeId(castId, "cast id");
   return saveImage(projectId, `cast-${castId}`, base64, mimeType, root);
+}
+
+/** Write an environment's locked reference image; returns the stored filename. */
+export async function saveEnvironmentImage(
+  projectId: string,
+  envId: string,
+  base64: string,
+  mimeType: string,
+  root: string = DEFAULT_ROOT()
+): Promise<string> {
+  assertSafeId(envId, "environment id");
+  return saveImage(projectId, `env-${envId}`, base64, mimeType, root);
 }
 
 /** Write a beat's locked page art; returns the stored filename. */

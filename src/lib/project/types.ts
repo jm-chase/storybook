@@ -30,6 +30,18 @@ export interface CastMember {
   locked?: LockedImage;
 }
 
+/** A persistent setting (D-020 refinement): described once, locked as a
+ * reference, then every scene set there conditions on it — same mechanism as
+ * cast. Fixes the "bridge turned from stone to wood" class of drift. */
+export interface EnvironmentSetting {
+  id: string;
+  /** Short label, validated (shortDetail kind) — e.g. "the old stone bridge". */
+  name: string;
+  /** Freeform — drives ART ONLY (firewall, D-018). */
+  description: string;
+  locked?: LockedImage;
+}
+
 /** One page/spread of the book: who's in it, what happens visually, the page text. */
 export interface StoryBeat {
   id: string;
@@ -42,6 +54,8 @@ export interface StoryBeat {
   text: string;
   /** Which cast members appear ("who's in this beat", D-022). Order = reference order. */
   castIds: string[];
+  /** Where this beat takes place — an EnvironmentSetting id, if assigned. */
+  environmentId?: string;
   /** Chosen + locked page art. */
   art?: LockedImage;
 }
@@ -52,6 +66,8 @@ export interface Project {
   /** Project-level house style (D-016) — one style per book. */
   styleId: string;
   cast: CastMember[];
+  /** The book's persistent settings. */
+  environments: EnvironmentSetting[];
   /** The book's pages, in reading order. */
   storyboard: StoryBeat[];
   createdAt: string;

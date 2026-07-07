@@ -20,10 +20,10 @@ export async function POST(req: Request, { params }: Params) {
   } catch {
     return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
   }
-  const b = body as { sceneDescription?: unknown; text?: unknown; castIds?: unknown };
+  const b = body as { sceneDescription?: unknown; text?: unknown; castIds?: unknown; environmentId?: unknown };
 
   const built = validateBeatInput(
-    { sceneDescription: b.sceneDescription, text: b.text, castIds: b.castIds },
+    { sceneDescription: b.sceneDescription, text: b.text, castIds: b.castIds, environmentId: b.environmentId },
     project
   );
   if (!built.ok) {

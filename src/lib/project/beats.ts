@@ -12,10 +12,11 @@ export interface BeatInput {
   sceneDescription: unknown;
   text: unknown;
   castIds: unknown;
+  environmentId?: unknown;
 }
 
 export type BeatResult =
-  | { ok: true; value: { sceneDescription: string; text: string; castIds: string[] } }
+  | { ok: true; value: { sceneDescription: string; text: string; castIds: string[]; environmentId?: string } }
   | { ok: false; errors: Record<string, string> };
 
 export function validateBeatInput(input: BeatInput, project: Project): BeatResult {
@@ -49,6 +50,15 @@ export function validateBeatInput(input: BeatInput, project: Project): BeatResul
     }
   }
 
+  let environmentId: string | undefined;
+  if (input.environmentId !== undefined && input.environmentId !== null && input.environmentId !== "") {
+    if (typeof input.environmentId !== "string" || !project.environments.some((e) => e.id === input.environmentId)) {
+      errors.environmentId = "That setting isn't in this book.";
+    } else {
+      environmentId = input.environmentId;
+    }
+  }
+
   if (Object.keys(errors).length > 0) return { ok: false, errors };
-  return { ok: true, value: { sceneDescription, text, castIds } };
+  return { ok: true, value: { sceneDescription, text, castIds, environmentId } };
 }

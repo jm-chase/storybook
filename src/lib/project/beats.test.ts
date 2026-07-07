@@ -11,6 +11,7 @@ const project: Project = {
     { id: "hero-1", role: "hero", name: "Mia", description: "a girl" },
     { id: "troll-1", role: "adversary", name: "Grum", description: "a troll" },
   ],
+  environments: [{ id: "env-1", name: "the old stone bridge", description: "an arched stone bridge over a stream" }],
   storyboard: [],
   createdAt: "2026-07-06T00:00:00.000Z",
   updatedAt: "2026-07-06T00:00:00.000Z",
@@ -57,4 +58,15 @@ test("unknown cast id fails", () => {
 test("non-array castIds fails", () => {
   const r = validateBeatInput({ sceneDescription: "ok", text: "", castIds: "hero-1" }, project);
   assert.ok(!r.ok);
+});
+
+test("environmentId: known passes, unknown fails, empty means none", () => {
+  const ok = validateBeatInput({ sceneDescription: "ok", text: "", castIds: [], environmentId: "env-1" }, project);
+  assert.ok(ok.ok);
+  if (ok.ok) assert.equal(ok.value.environmentId, "env-1");
+  const none = validateBeatInput({ sceneDescription: "ok", text: "", castIds: [], environmentId: "" }, project);
+  assert.ok(none.ok);
+  if (none.ok) assert.equal(none.value.environmentId, undefined);
+  const bad = validateBeatInput({ sceneDescription: "ok", text: "", castIds: [], environmentId: "nowhere" }, project);
+  assert.ok(!bad.ok);
 });

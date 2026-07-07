@@ -20,13 +20,14 @@ export async function PATCH(req: Request, { params }: Params) {
   } catch {
     return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
   }
-  const b = body as { sceneDescription?: unknown; text?: unknown; castIds?: unknown };
+  const b = body as { sceneDescription?: unknown; text?: unknown; castIds?: unknown; environmentId?: unknown };
 
   const built = validateBeatInput(
     {
       sceneDescription: b.sceneDescription ?? beat.sceneDescription,
       text: b.text ?? beat.text,
       castIds: b.castIds ?? beat.castIds,
+      environmentId: b.environmentId !== undefined ? b.environmentId : beat.environmentId,
     },
     project
   );
@@ -39,10 +40,13 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const sceneChanged =
     built.value.sceneDescription !== beat.sceneDescription ||
-    JSON.stringify(built.value.castIds) !== JSON.stringify(beat.castIds);
+    JSON.stringify(built.value.castIds) !== JSON.stringify(beat.castIds) ||
+    built.value.environmentId !== beat.environmentId;
   beat.sceneDescription = built.value.sceneDescription;
   beat.text = built.value.text;
   beat.castIds = built.value.castIds;
+  if (built.value.environmentId) beat.environmentId = built.value.environmentId;
+  else delete beat.environmentId;
   if (sceneChanged) delete beat.art;
 
   const saved = await saveProject(project);

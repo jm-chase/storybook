@@ -114,19 +114,35 @@ export async function editImage(args: {
   return firstImage(res);
 }
 
+/** A locked setting reference passed alongside a scene request. */
+export interface EnvironmentRef {
+  description: string;
+  base64: string;
+  mimeType: string;
+}
+
+const SETTING_INSTRUCTION =
+  "The FINAL reference image shows the SETTING. Set the scene in this exact location — " +
+  "keep its architecture, materials, colours, and landscape consistent with the setting image. ";
+
 /** A scene with NO cast (establishing shot / environment page). */
 export async function generateStandaloneScene(args: {
   scenePrompt: string;
   style: HouseStyle;
+  environment?: EnvironmentRef;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
+  const text =
+    `A children's picture-book illustration. Scene: ${args.scenePrompt}. ` +
+    (args.environment ? SETTING_INSTRUCTION : "") +
+    `Art style: ${args.style.promptFragment}. ` +
+    `A single illustration, no characters in focus, no text or lettering.`;
   const res = await withRetry(() =>
     ai.models.generateContent({
       model: GEMINI_IMAGE_MODEL,
-      contents:
-        `A children's picture-book illustration. Scene: ${args.scenePrompt}. ` +
-        `Art style: ${args.style.promptFragment}. ` +
-        `A single illustration, no characters in focus, no text or lettering.`,
+      contents: args.environment
+        ? [{ text }, { inlineData: { mimeType: args.environment.mimeType, data: args.environment.base64 } }]
+        : text,
     })
   );
   return firstImage(res);
@@ -149,9 +165,10 @@ export async function generateMultiCharacterScene(args: {
   characters: CharacterRef[];
   scenePrompt: string;
   style: HouseStyle;
+  environment?: EnvironmentRef;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
-  const { characters, scenePrompt, style } = args;
+  const { characters, scenePrompt, style, environment } = args;
   const labels = characters
     .map((c, i) => `Image ${i + 1} is ${c.label} (${c.description}).`)
     .join(" ");
@@ -160,6 +177,7 @@ export async function generateMultiCharacterScene(args: {
     `Draw a SINGLE illustration showing these characters together. ` +
     `Keep EACH character exactly as in their reference image — same face, colours, ` +
     `proportions, and outfit — and do NOT blend or mix their features. ` +
+    (environment ? SETTING_INSTRUCTION : "") +
     `Scene: ${scenePrompt}. Art style: ${style.promptFragment}. No text or lettering.`;
   const res = await withRetry(() =>
     ai.models.generateContent({
@@ -167,6 +185,7 @@ export async function generateMultiCharacterScene(args: {
       contents: [
         { text },
         ...characters.map((c) => ({ inlineData: { mimeType: c.mimeType, data: c.base64 } })),
+        ...(environment ? [{ inlineData: { mimeType: environment.mimeType, data: environment.base64 } }] : []),
       ],
     })
   );
