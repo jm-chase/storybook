@@ -16,7 +16,8 @@
     "validate:e2e": "node --import tsx scripts/e2e-book.ts",
     "eval:consistency": "node --env-file-if-exists=.env.local --import tsx scripts/eval-consistency.ts",
     "seeds:candidates": "node --env-file-if-exists=.env.local --import tsx scripts/generate-style-seeds.ts",
-    "validate:seeds": "node --env-file-if-exists=.env.local --import tsx scripts/validate-seeds.ts"
+    "validate:seeds": "node --env-file-if-exists=.env.local --import tsx scripts/validate-seeds.ts",
+    "validate:classic": "node --import tsx scripts/validate-classic.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

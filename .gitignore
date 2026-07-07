@@ -32,6 +32,8 @@ next-env.d.ts
 /eval-output/
 /seed-candidates/
 /seed-validation/
+/classic-interior.pdf
+/classic-cover.pdf
 
 # os / editor
 .DS_Store
