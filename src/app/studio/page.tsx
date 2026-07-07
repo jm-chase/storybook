@@ -369,7 +369,9 @@ function ProjectView({
   const style = HOUSE_STYLE_BY_ID[project.styleId];
   // The member currently in the generate→choose→lock workspace.
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [fixCastId, setFixCastId] = useState<string | null>(null);
   const active = project.cast.find((c) => c.id === activeId) ?? null;
+  const fixMember = project.cast.find((c) => c.id === fixCastId) ?? null;
 
   async function removeMember(castId: string) {
     const res = await fetch(`/api/projects/${project.id}/cast/${castId}`, { method: "DELETE" });
@@ -432,6 +434,11 @@ function ProjectView({
                     Generate
                   </button>
                 )}
+                {m.locked && (
+                  <button onClick={() => setFixCastId(m.id)} style={btnSmall(true)}>
+                    ✏️ Fix
+                  </button>
+                )}
                 <button onClick={() => removeMember(m.id)} style={btnSmall(false)}>
                   Remove
                 </button>
@@ -449,6 +456,19 @@ function ProjectView({
           member={active}
           onProject={onProject}
           onDone={() => setActiveId(null)}
+        />
+      )}
+
+      {fixMember?.locked && (
+        <RefineWorkspace
+          key={fixMember.id}
+          title={`✏️ Fixing ${fixMember.name} (${ROLE_META[fixMember.role].label})`}
+          description={`${fixMember.description} — pages already drawn from the old reference keep their art; regenerate them to pick up the fix.`}
+          imageSrc={`/api/projects/${project.id}/images/${fixMember.locked.file}`}
+          refinePath={`/api/projects/${project.id}/cast/${fixMember.id}/refine`}
+          lockPath={`/api/projects/${project.id}/cast/${fixMember.id}/lock`}
+          onProject={onProject}
+          onDone={() => setFixCastId(null)}
         />
       )}
 
@@ -757,11 +777,13 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
       )}
 
       {fixBeat && fixBeat.art && (
-        <FixWorkspace
+        <RefineWorkspace
           key={fixBeat.id}
-          project={project}
-          beat={fixBeat}
-          pageNumber={project.storyboard.indexOf(fixBeat) + 1}
+          title={`✏️ Fixing page ${project.storyboard.indexOf(fixBeat) + 1}`}
+          description={fixBeat.sceneDescription}
+          imageSrc={`/api/projects/${project.id}/images/${fixBeat.art.file}`}
+          refinePath={`/api/projects/${project.id}/beats/${fixBeat.id}/refine`}
+          lockPath={`/api/projects/${project.id}/beats/${fixBeat.id}/lock`}
           onProject={onProject}
           onDone={() => setFixBeatId(null)}
         />
@@ -770,17 +792,23 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
   );
 }
 
-/** Point-to-fix (Slice 3): say the fix plainly → edited variants that changed only that → relock. */
-function FixWorkspace({
-  project,
-  beat,
-  pageNumber,
+/** Point-to-fix (Slice 3): say the fix plainly → edited variants that changed
+ * only that → relock. Generic over what's being fixed (page art or a locked
+ * cast reference). */
+function RefineWorkspace({
+  title,
+  description,
+  imageSrc,
+  refinePath,
+  lockPath,
   onProject,
   onDone,
 }: {
-  project: Project;
-  beat: StoryBeat;
-  pageNumber: number;
+  title: string;
+  description: string;
+  imageSrc: string;
+  refinePath: string;
+  lockPath: string;
   onProject: (p: Project) => void;
   onDone: () => void;
 }) {
@@ -788,16 +816,11 @@ function FixWorkspace({
 
   return (
     <section style={{ border: "2px solid #c2724f33", borderRadius: 12, padding: "1rem", marginTop: "0.75rem" }}>
-      <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 0.25rem" }}>✏️ Fixing page {pageNumber}</p>
+      <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 0.25rem" }}>{title}</p>
       <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "flex-start" }}>
-        {beat.art && (
-          <img
-            src={`/api/projects/${project.id}/images/${beat.art.file}`}
-            alt="current art"
-            style={{ width: 140, height: 140, objectFit: "cover", borderRadius: 8 }}
-          />
-        )}
+        <img src={imageSrc} alt="current art" style={{ width: 140, height: 140, objectFit: "cover", borderRadius: 8 }} />
         <div style={{ flex: 1, minWidth: 260 }}>
+          <p style={{ fontSize: "0.75rem", opacity: 0.65, margin: "0 0 0.5rem" }}>{description}</p>
           <label style={{ display: "block", marginBottom: "0.5rem" }}>
             <span style={labelText}>What should change? (just this one thing)</span>
             <input
@@ -809,14 +832,14 @@ function FixWorkspace({
           </label>
           <VariantChooser
             requestVariants={() =>
-              fetch(`/api/projects/${project.id}/beats/${beat.id}/refine`, {
+              fetch(refinePath, {
                 method: "POST",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({ instruction }),
               })
             }
             requestLock={(dataUrl) =>
-              fetch(`/api/projects/${project.id}/beats/${beat.id}/lock`, {
+              fetch(lockPath, {
                 method: "POST",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({ imageDataUrl: dataUrl }),
