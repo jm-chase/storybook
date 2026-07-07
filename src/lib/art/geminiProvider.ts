@@ -83,6 +83,24 @@ export async function generateScene(args: {
   return firstImage(res);
 }
 
+/** A scene with NO cast (establishing shot / environment page). */
+export async function generateStandaloneScene(args: {
+  scenePrompt: string;
+  style: HouseStyle;
+}): Promise<GeneratedImage> {
+  const ai = getGeminiClient();
+  const res = await withRetry(() =>
+    ai.models.generateContent({
+      model: GEMINI_IMAGE_MODEL,
+      contents:
+        `A children's picture-book illustration. Scene: ${args.scenePrompt}. ` +
+        `Art style: ${args.style.promptFragment}. ` +
+        `A single illustration, no characters in focus, no text or lettering.`,
+    })
+  );
+  return firstImage(res);
+}
+
 export interface CharacterRef {
   /** e.g. "the hero", "the sidekick". */
   label: string;

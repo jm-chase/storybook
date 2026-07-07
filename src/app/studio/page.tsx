@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { HOUSE_STYLES, HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
 import { MAX_DESCRIPTION } from "@/lib/art/brief";
-import { CAST_ROLES, type CastRole, type Project, type ProjectSummary } from "@/lib/project/types";
+import { CAST_ROLES, type CastRole, type Project, type ProjectSummary, type StoryBeat } from "@/lib/project/types";
+import { MAX_SCENE_DESCRIPTION, MAX_PAGE_TEXT } from "@/lib/project/beats";
+import { BOOK_TEMPLATES } from "@/content/bookTemplates";
 
 // The cast studio (D-022/D-023): a persisted book PROJECT with a locked CAST.
 // Create/open a project → pick the book's style → add characters by role →
@@ -129,8 +131,10 @@ function Picker({
       )}
       {loading && <p style={{ fontSize: "0.8rem", opacity: 0.6 }}>Loading your books…</p>}
 
+      <TemplateSection onCreated={onCreated} />
+
       <section style={{ marginTop: "1.5rem", maxWidth: 560 }}>
-        <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>Start a new book</p>
+        <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>Start a blank book (full studio)</p>
         <label style={{ display: "block", marginBottom: "1rem" }}>
           <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>Book title</span>
           <input
@@ -161,6 +165,85 @@ function Picker({
         </button>
       </section>
     </>
+  );
+}
+
+/* ---------------- Start from a template (skin 2) ---------------- */
+
+function TemplateSection({ onCreated }: { onCreated: (p: Project) => void }) {
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [heroName, setHeroName] = useState("");
+  const [heroDescription, setHeroDescription] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const chosen = BOOK_TEMPLATES.find((t) => t.id === templateId);
+
+  async function create() {
+    setBusy(true);
+    setErrors({});
+    try {
+      const res = await fetch("/api/projects/from-template", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ templateId, heroName, heroDescription }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setErrors(
+          d.fields
+            ? Object.fromEntries(Object.entries(d.fields as Record<string, { message: string }>).map(([k, v]) => [k, v.message]))
+            : { heroName: d.error ?? "Could not create the book." }
+        );
+        return;
+      }
+      onCreated(d.project);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section style={{ marginTop: "1.5rem" }}>
+      <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>Start from a story (you just add your child)</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "0.6rem" }}>
+        {BOOK_TEMPLATES.map((t) => (
+          <div key={t.id} style={card(t.id === templateId)} onClick={() => setTemplateId(t.id)}>
+            <div style={{ fontSize: "0.7rem", fontWeight: 700, opacity: 0.55, textTransform: "uppercase" }}>
+              {t.kind === "classic" ? "classic · public domain" : "occasion"}
+            </div>
+            <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{t.title.replace("{hero}", "Your child")}</div>
+            <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>{t.blurb}</div>
+            <div style={{ fontSize: "0.68rem", opacity: 0.55, marginTop: 4 }}>
+              {t.beats.length} pages · {HOUSE_STYLE_BY_ID[t.defaultStyleId]?.name}
+            </div>
+          </div>
+        ))}
+      </div>
+      {chosen && (
+        <div style={{ ...card(true), cursor: "default", maxWidth: 560, marginTop: "0.6rem" }}>
+          <label style={{ display: "block", marginBottom: "0.5rem" }}>
+            <span style={labelText}>Your hero&apos;s name</span>
+            <input value={heroName} onChange={(e) => setHeroName(e.target.value)} style={inputStyle(!!errors.heroName)} />
+            {errors.heroName && <Err>{errors.heroName}</Err>}
+          </label>
+          <label style={{ display: "block" }}>
+            <span style={labelText}>Describe your hero (drives the artwork only)</span>
+            <textarea
+              value={heroDescription}
+              onChange={(e) => setHeroDescription(e.target.value)}
+              rows={2}
+              maxLength={MAX_DESCRIPTION + 20}
+              placeholder="a blond-haired, spunky, brown-eyed 4-year-old girl"
+              style={{ ...inputStyle(!!errors.heroDescription), resize: "vertical" }}
+            />
+            {errors.heroDescription && <Err>{errors.heroDescription}</Err>}
+          </label>
+          <button onClick={create} disabled={busy} style={{ ...btn(true), marginTop: "0.6rem" }}>
+            {busy ? "Creating…" : `Create “${chosen.title.replace("{hero}", heroName || "…")}”`}
+          </button>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -261,14 +344,268 @@ function ProjectView({
         />
       )}
 
+      <StoryboardSection project={project} onProject={onProject} />
+
+      {project.storyboard.length > 0 && (
+        <a
+          href={`/api/projects/${project.id}/pdf`}
+          style={{ ...btn(true), display: "inline-block", textDecoration: "none", marginTop: "0.5rem" }}
+        >
+          📖 Download the book (PDF)
+        </a>
+      )}
+
       <div style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px solid #00000012", opacity: 0.6 }}>
         <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>Coming next:</p>
         <p style={{ fontSize: "0.8rem", margin: 0 }}>
-          the <strong>storyboard</strong> — every beat says who&apos;s in it, and your locked cast appears together in
-          each scene · point-to-fix any detail · export the print-ready booklet.
+          point-to-fix any detail · export the <strong>print-ready booklet</strong>.
         </p>
       </div>
     </>
+  );
+}
+
+/* ---------------- Storyboard: beats + page art ---------------- */
+
+function StoryboardSection({ project, onProject }: { project: Project; onProject: (p: Project) => void }) {
+  const [activeBeatId, setActiveBeatId] = useState<string | null>(null);
+  const activeBeat = project.storyboard.find((b) => b.id === activeBeatId) ?? null;
+  const castById = new Map(project.cast.map((c) => [c.id, c]));
+
+  async function removeBeat(beatId: string) {
+    const res = await fetch(`/api/projects/${project.id}/beats/${beatId}`, { method: "DELETE" });
+    const d = await res.json();
+    if (res.ok) {
+      if (activeBeatId === beatId) setActiveBeatId(null);
+      onProject(d.project);
+    }
+  }
+
+  return (
+    <section style={{ margin: "1.5rem 0" }}>
+      <p style={{ fontSize: "0.9rem", fontWeight: 600 }}>The storyboard</p>
+      {project.cast.length === 0 && (
+        <p style={{ fontSize: "0.78rem", opacity: 0.6 }}>Lock your cast first — every page is drawn from their locked references.</p>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+        {project.storyboard.map((beat, i) => (
+          <div key={beat.id} style={{ ...card(beat.id === activeBeatId), cursor: "default", display: "flex", gap: "0.75rem" }}>
+            {beat.art ? (
+              <img
+                src={`/api/projects/${project.id}/images/${beat.art.file}`}
+                alt={`page ${i + 1}`}
+                style={{ width: 120, height: 120, objectFit: "cover", borderRadius: 8, flexShrink: 0 }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 120,
+                  height: 120,
+                  border: "2px dashed #00000022",
+                  borderRadius: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "0.72rem",
+                  opacity: 0.6,
+                  flexShrink: 0,
+                  textAlign: "center",
+                }}
+              >
+                no art yet
+              </div>
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: "0.82rem", fontWeight: 600 }}>
+                Page {i + 1}
+                {beat.art && <span style={{ color: "#2a9d8f" }}> 🔒</span>}
+                <span style={{ fontWeight: 400, opacity: 0.65 }}>
+                  {" "}
+                  · {beat.castIds.length === 0 ? "no characters (establishing shot)" : beat.castIds.map((cid) => castById.get(cid)?.name ?? "?").join(", ")}
+                </span>
+              </div>
+              <div style={{ fontSize: "0.78rem", opacity: 0.8, marginTop: 2 }}>{beat.sceneDescription}</div>
+              {beat.text && (
+                <div style={{ fontSize: "0.78rem", fontStyle: "italic", opacity: 0.65, marginTop: 2 }}>&ldquo;{beat.text}&rdquo;</div>
+              )}
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                {!beat.art && (
+                  <button onClick={() => setActiveBeatId(beat.id)} style={btnSmall(true)}>
+                    Generate page art
+                  </button>
+                )}
+                <button onClick={() => removeBeat(beat.id)} style={btnSmall(false)}>
+                  Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AddBeatCard project={project} onProject={onProject} onAdded={(beatId) => setActiveBeatId(beatId)} />
+
+      {activeBeat && !activeBeat.art && (
+        <BeatWorkspace
+          key={activeBeat.id}
+          project={project}
+          beat={activeBeat}
+          pageNumber={project.storyboard.indexOf(activeBeat) + 1}
+          onProject={onProject}
+          onDone={() => setActiveBeatId(null)}
+        />
+      )}
+    </section>
+  );
+}
+
+function AddBeatCard({
+  project,
+  onProject,
+  onAdded,
+}: {
+  project: Project;
+  onProject: (p: Project) => void;
+  onAdded: (beatId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [sceneDescription, setSceneDescription] = useState("");
+  const [text, setText] = useState("");
+  const [castIds, setCastIds] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+
+  function toggleCast(id: string) {
+    setCastIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+  }
+
+  async function add() {
+    setBusy(true);
+    setErrors({});
+    try {
+      const res = await fetch(`/api/projects/${project.id}/beats`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sceneDescription, text, castIds }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setErrors(
+          d.fields
+            ? Object.fromEntries(Object.entries(d.fields as Record<string, { message: string }>).map(([k, v]) => [k, v.message]))
+            : { sceneDescription: d.error ?? "Could not add the page." }
+        );
+        return;
+      }
+      onProject(d.project);
+      setSceneDescription("");
+      setText("");
+      setCastIds([]);
+      onAdded(d.beat.id);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <div
+        style={{ ...card(false), display: "flex", alignItems: "center", justifyContent: "center", minHeight: 60, marginTop: "0.6rem" }}
+        onClick={() => setOpen(true)}
+      >
+        <span style={{ fontSize: "0.85rem", fontWeight: 600, opacity: 0.7 }}>＋ Add a page</span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ ...card(true), cursor: "default", marginTop: "0.6rem", maxWidth: 560 }}>
+      <p style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0 0 0.5rem" }}>Add a page</p>
+      <label style={{ display: "block", marginBottom: "0.5rem" }}>
+        <span style={labelText}>What happens in this scene? (drives the art)</span>
+        <textarea
+          value={sceneDescription}
+          onChange={(e) => setSceneDescription(e.target.value)}
+          rows={2}
+          maxLength={MAX_SCENE_DESCRIPTION + 20}
+          placeholder="Mia meets the grumpy troll on the old stone bridge at dusk"
+          style={{ ...inputStyle(!!errors.sceneDescription), resize: "vertical" }}
+        />
+        <span style={{ fontSize: "0.68rem", opacity: 0.55 }}>{sceneDescription.length}/{MAX_SCENE_DESCRIPTION}</span>
+        {errors.sceneDescription && <Err>{errors.sceneDescription}</Err>}
+      </label>
+      <label style={{ display: "block", marginBottom: "0.5rem" }}>
+        <span style={labelText}>Page text (typeset on the page — leave empty for a wordless page)</span>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={2}
+          maxLength={MAX_PAGE_TEXT + 20}
+          style={{ ...inputStyle(!!errors.text), resize: "vertical" }}
+        />
+        {errors.text && <Err>{errors.text}</Err>}
+      </label>
+      <span style={labelText}>Who&apos;s in this page?</span>
+      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", margin: "0.35rem 0 0.5rem" }}>
+        {project.cast.map((m) => (
+          <button
+            key={m.id}
+            onClick={() => toggleCast(m.id)}
+            style={{
+              ...btnSmall(castIds.includes(m.id)),
+              opacity: m.locked ? 1 : 0.55,
+            }}
+            title={m.locked ? undefined : "Not locked yet — lock before generating this page"}
+          >
+            {ROLE_META[m.role].emoji} {m.name}
+            {!m.locked && " (unlocked)"}
+          </button>
+        ))}
+        {project.cast.length === 0 && <span style={{ fontSize: "0.75rem", opacity: 0.6 }}>No cast yet — an establishing shot is fine.</span>}
+      </div>
+      {errors.castIds && <Err>{errors.castIds}</Err>}
+      <button onClick={add} disabled={busy} style={{ ...btn(true), marginTop: "0.4rem" }}>
+        {busy ? "Adding…" : "Add page"}
+      </button>
+    </div>
+  );
+}
+
+function BeatWorkspace({
+  project,
+  beat,
+  pageNumber,
+  onProject,
+  onDone,
+}: {
+  project: Project;
+  beat: StoryBeat;
+  pageNumber: number;
+  onProject: (p: Project) => void;
+  onDone: () => void;
+}) {
+  return (
+    <section style={{ border: "2px solid #c2724f33", borderRadius: 12, padding: "1rem", marginTop: "0.75rem" }}>
+      <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 0.25rem" }}>Generating page {pageNumber}</p>
+      <p style={{ fontSize: "0.78rem", opacity: 0.7, marginTop: 0 }}>{beat.sceneDescription}</p>
+      <VariantChooser
+        requestVariants={() =>
+          fetch(`/api/projects/${project.id}/beats/${beat.id}/generate`, { method: "POST" })
+        }
+        requestLock={(dataUrl) =>
+          fetch(`/api/projects/${project.id}/beats/${beat.id}/lock`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ imageDataUrl: dataUrl }),
+          })
+        }
+        onLocked={(p) => {
+          onProject(p);
+          onDone();
+        }}
+        idleHint="Your locked cast is drawn into this scene, checked character-by-character behind the Output Gate."
+      />
+    </section>
   );
 }
 
@@ -385,6 +722,50 @@ function GenerateWorkspace({
   onProject: (p: Project) => void;
   onDone: () => void;
 }) {
+  return (
+    <section style={{ border: "2px solid #c2724f33", borderRadius: 12, padding: "1rem", marginTop: "0.5rem" }}>
+      <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 0.25rem" }}>
+        {ROLE_META[member.role].emoji} Generating {member.name} <span style={{ opacity: 0.6 }}>({ROLE_META[member.role].label})</span>
+      </p>
+      <p style={{ fontSize: "0.78rem", opacity: 0.7, marginTop: 0 }}>{member.description}</p>
+      <VariantChooser
+        requestVariants={() =>
+          fetch("/api/generate-character", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ name: member.name, description: member.description, styleId: project.styleId }),
+          })
+        }
+        requestLock={(dataUrl) =>
+          fetch(`/api/projects/${project.id}/cast/${member.id}/lock`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ imageDataUrl: dataUrl }),
+          })
+        }
+        onLocked={(p) => {
+          onProject(p);
+          onDone();
+        }}
+        idleHint="Real artwork via Gemini, server-side behind the Output Gate (safety stub + quality + consistency, with auto-reroll). You'll pick your favourite of 3, then lock."
+      />
+    </section>
+  );
+}
+
+/* ---------------- shared generate → choose from 3 → lock ---------------- */
+
+function VariantChooser({
+  requestVariants,
+  requestLock,
+  onLocked,
+  idleHint,
+}: {
+  requestVariants: () => Promise<Response>;
+  requestLock: (dataUrl: string) => Promise<Response>;
+  onLocked: (p: Project) => void;
+  idleHint: string;
+}) {
   const [variants, setVariants] = useState<string[]>([]);
   const [selected, setSelected] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -395,11 +776,7 @@ function GenerateWorkspace({
     setBusy(true);
     setMeta("");
     try {
-      const res = await fetch("/api/generate-character", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: member.name, description: member.description, styleId: project.styleId }),
-      });
+      const res = await requestVariants();
       const data: GenResponse = await res.json();
       if (!res.ok) {
         setMeta(`⚠️ ${data.error ?? "Generation failed."}`);
@@ -421,33 +798,23 @@ function GenerateWorkspace({
   async function lock() {
     setLocking(true);
     try {
-      const res = await fetch(`/api/projects/${project.id}/cast/${member.id}/lock`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ imageDataUrl: variants[selected] }),
-      });
+      const res = await requestLock(variants[selected]);
       const d = await res.json();
       if (!res.ok) {
         setMeta(`⚠️ ${d.error ?? "Could not lock."}`);
         return;
       }
-      onProject(d.project);
-      onDone();
+      onLocked(d.project);
     } finally {
       setLocking(false);
     }
   }
 
   return (
-    <section style={{ border: "2px solid #c2724f33", borderRadius: 12, padding: "1rem", marginTop: "0.5rem" }}>
-      <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 0.25rem" }}>
-        {ROLE_META[member.role].emoji} Generating {member.name} <span style={{ opacity: 0.6 }}>({ROLE_META[member.role].label})</span>
-      </p>
-      <p style={{ fontSize: "0.78rem", opacity: 0.7, marginTop: 0 }}>{member.description}</p>
-
+    <>
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
         <button onClick={generate} disabled={busy || locking} style={btn(true)}>
-          {busy ? "Generating 3 options… (~60s)" : variants.length ? "Generate again" : "Generate 3 options"}
+          {busy ? "Generating 3 options… (~60–120s)" : variants.length ? "Generate again" : "Generate 3 options"}
         </button>
         {variants.length > 0 && (
           <button onClick={lock} disabled={busy || locking} style={btn(false)}>
@@ -460,7 +827,7 @@ function GenerateWorkspace({
       {variants.length > 0 && (
         <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 300px", border: "3px solid #00000018", borderRadius: 12, overflow: "hidden", background: "#fffdf8" }}>
-            <img src={variants[selected]} alt="character option" style={{ width: "100%", display: "block" }} />
+            <img src={variants[selected]} alt="option preview" style={{ width: "100%", display: "block" }} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {variants.map((src, i) => (
@@ -482,13 +849,8 @@ function GenerateWorkspace({
           </div>
         </div>
       )}
-      {variants.length === 0 && !busy && (
-        <p style={{ fontSize: "0.78rem", opacity: 0.6 }}>
-          Real artwork via Gemini, server-side behind the Output Gate (safety stub + quality + consistency, with
-          auto-reroll). You&apos;ll pick your favourite of 3, then lock.
-        </p>
-      )}
-    </section>
+      {variants.length === 0 && !busy && <p style={{ fontSize: "0.78rem", opacity: 0.6 }}>{idleHint}</p>}
+    </>
   );
 }
 

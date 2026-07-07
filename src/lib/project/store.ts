@@ -47,6 +47,7 @@ export async function createProject(
     title: input.title,
     styleId: input.styleId,
     cast: [],
+    storyboard: [],
     createdAt: now,
     updatedAt: now,
     schemaVersion: 1,
@@ -59,7 +60,10 @@ export async function createProject(
 export async function getProject(id: string, root: string = DEFAULT_ROOT()): Promise<Project | null> {
   try {
     const raw = await fs.readFile(path.join(projectDir(root, id), "project.json"), "utf8");
-    return JSON.parse(raw) as Project;
+    const project = JSON.parse(raw) as Project;
+    // Documents written before the storyboard existed lack the field — normalize.
+    project.storyboard ??= [];
+    return project;
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw e;
@@ -104,6 +108,23 @@ const MIME_BY_EXT: Record<string, string> = {
   webp: "image/webp",
 };
 
+async function saveImage(
+  projectId: string,
+  stem: string,
+  base64: string,
+  mimeType: string,
+  root: string
+): Promise<string> {
+  assertSafeId(stem, "image stem");
+  const ext = EXT_BY_MIME[mimeType];
+  if (!ext) throw new Error(`unsupported image mime type: ${mimeType}`);
+  const file = `${stem}.${ext}`;
+  const dir = path.join(projectDir(root, projectId), "images");
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(path.join(dir, file), Buffer.from(base64, "base64"));
+  return file;
+}
+
 /** Write a cast member's locked reference image; returns the stored filename. */
 export async function saveCastImage(
   projectId: string,
@@ -113,13 +134,19 @@ export async function saveCastImage(
   root: string = DEFAULT_ROOT()
 ): Promise<string> {
   assertSafeId(castId, "cast id");
-  const ext = EXT_BY_MIME[mimeType];
-  if (!ext) throw new Error(`unsupported image mime type: ${mimeType}`);
-  const file = `cast-${castId}.${ext}`;
-  const dir = path.join(projectDir(root, projectId), "images");
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(path.join(dir, file), Buffer.from(base64, "base64"));
-  return file;
+  return saveImage(projectId, `cast-${castId}`, base64, mimeType, root);
+}
+
+/** Write a beat's locked page art; returns the stored filename. */
+export async function saveBeatImage(
+  projectId: string,
+  beatId: string,
+  base64: string,
+  mimeType: string,
+  root: string = DEFAULT_ROOT()
+): Promise<string> {
+  assertSafeId(beatId, "beat id");
+  return saveImage(projectId, `beat-${beatId}`, base64, mimeType, root);
 }
 
 export async function readImage(

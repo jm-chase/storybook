@@ -43,7 +43,14 @@ _Living document — updated every session. Last updated: 2026-06-25._
   - Verified: 39 tests pass, `tsc` clean, `next build` clean, full API loop smoke-tested live (create → add hero → validation 400s → lock → 409 style-change → image serves 200 → list shows locked count). Real-generation smoke **blocked by B-7** (billing regression), but the generation path itself is unchanged from proven Slice 2.
   - _Hosted note (documented in the lock route):_ v1 lock accepts the client's chosen data-URL; once deployed, lock must reference a server-held gate-passed candidate id (gate bypass otherwise).
 
-Not yet wired end-to-end: no Claude personalization pass, no output-moderation pass (layer 2), no print-ready PDF export (the booklet *file*; the on-screen preview exists), no full wizard flow.
+- **THE SPINE IS COMPLETE — first real book end-to-end (2026-07-07):**
+  - **Storyboard slice:** `StoryBeat` in the project model (sceneDescription firewalled art-only; `text` typeset never model-rendered; `castIds` = who's in the beat), beat validation (`beats.ts`, 6 tests), `generateSceneVariants` (0-cast establishing shots / multi-cast via labelled refs, through the gate with per-character consistency), beats CRUD + generate + lock routes, storyboard UI in `/studio` (beat cards, cast chips, choose-from-3 per page via shared `VariantChooser`).
+  - **PDF export:** `renderBookPdf` (@react-pdf/renderer — 8in-square cover + full-page art + typeset text panel; partial books export as text pages), `GET /api/projects/[id]/pdf`, download button. Verified: 4-page PDF, correct dims/title. _R-9 remains: 1024² ≈ 128 DPI at 8in — home-print fine, POD needs the upscale pass._
+  - **E2E validation (`npm run validate:e2e`, $0.74):** created "Mia and the Grumpy Troll" — locked hero+sidekick+adversary, generated 3 pages incl. two 3-character scenes. **Visual inspection: all characters on-model in every page, zero identity bleed, style held; the gate rerolled exactly one defective candidate autonomously.** Finding: the *bridge* changed stone→wood between pages — **environment locking is the next consistency frontier** (expected; same mechanism as cast).
+  - **Skin 2 — classics & occasions (first pass):** `bookTemplates.ts` (2 occasion templates + *{hero} in Wonderland*, public-domain per D-024, all content-linted by test), `instantiateTemplate` (3 tests), `POST /api/projects/from-template`, template picker in `/studio` ("you just add your child"). Smoke-tested: Mia in Wonderland created with Alice + White Rabbit pre-cast, 6 authored beats.
+  - 42 tests pass; tsc + build clean.
+
+Not yet wired end-to-end: no Claude personalization pass, no output-moderation pass (layer 2), no full wizard flow, no environment locking, no point-to-fix.
 
 ## In Progress
 
@@ -58,11 +65,11 @@ Product is now **art-first** (D-014). Prose is parked. The existing prose skelet
 **Master plan: one engine, three front-ends.** The engine (locked cast + house styles + Output Gate + storyboard + print pipeline) is the asset; three product skins sit on it: (1) **parent studio**, (2) **classics & occasions** (public-domain only — D-024), (3) **indie-author B2B**. Spine first, skins after.
 
 **Build sequence (36-hour push started 2026-07-06):**
-1. **Cast support on a real data model (R-6/D-022)** — Project/CastMember schema, filesystem persistence, cast studio (lock hero/sidekick/adversary), per-character consistency check. ← IN PROGRESS
-2. **Storyboard + scene generation** — beats with "who's in this beat," multi-ref scene generation through the gate, choose-from-3 per page.
-3. **Print-ready PDF export** — @react-pdf/renderer layout + upscale (R-9 basic) → **one real book end-to-end**. This completes the spine.
-4. **Skins:** occasion templates + first public-domain classic (skin 2); manuscript-in flow for authors (skin 3, thin).
-5. Then: point-to-fix/inpaint (Slice 3 magic), style-seed locking, progress streaming (W-3), series ("same cast, new adventure").
+1. ✅ **Cast support on a real data model (R-6/D-022)** — done 2026-07-06.
+2. ✅ **Storyboard + scene generation** — done 2026-07-07, validated live.
+3. ✅ **PDF export** (booklet layout; R-9 upscale still open) → **first real book end-to-end, $0.74**. The spine exists.
+4. **Skins:** ✅ skin 2 first pass (occasions + Wonderland). Next: skin 3 (manuscript-in author flow, thin).
+5. Then: environment locking (bridge drifted stone→wood in the e2e — next consistency frontier), point-to-fix/inpaint (Slice 3 magic), style-seed locking, progress streaming (W-3), print upscale (R-9), series ("same cast, new adventure").
 6. (Deferred) Story-craft analysis (B-1) once references arrive; launch gates (`LAUNCH_GATES.md`) before real users.
 
 ## BLOCKERS (non-code) — need James's input

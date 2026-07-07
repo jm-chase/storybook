@@ -30,12 +30,30 @@ export interface CastMember {
   locked?: LockedImage;
 }
 
+/** One page/spread of the book: who's in it, what happens visually, the page text. */
+export interface StoryBeat {
+  id: string;
+  /**
+   * What happens VISUALLY in this scene — drives the art prompt (firewalled
+   * like CastMember.description: art only, never plot logic elsewhere).
+   */
+  sceneDescription: string;
+  /** The page's prose. Typeset separately at layout time — NEVER sent to the image model (no rendered text). */
+  text: string;
+  /** Which cast members appear ("who's in this beat", D-022). Order = reference order. */
+  castIds: string[];
+  /** Chosen + locked page art. */
+  art?: LockedImage;
+}
+
 export interface Project {
   id: string;
   title: string;
   /** Project-level house style (D-016) — one style per book. */
   styleId: string;
   cast: CastMember[];
+  /** The book's pages, in reading order. */
+  storyboard: StoryBeat[];
   createdAt: string;
   updatedAt: string;
   schemaVersion: 1;
@@ -48,6 +66,9 @@ export interface ProjectSummary {
   styleId: string;
   castCount: number;
   lockedCount: number;
+  beatCount: number;
+  /** Beats with locked page art. */
+  artCount: number;
   updatedAt: string;
 }
 
@@ -58,6 +79,8 @@ export function summarize(p: Project): ProjectSummary {
     styleId: p.styleId,
     castCount: p.cast.length,
     lockedCount: p.cast.filter((c) => c.locked).length,
+    beatCount: p.storyboard.length,
+    artCount: p.storyboard.filter((b) => b.art).length,
     updatedAt: p.updatedAt,
   };
 }

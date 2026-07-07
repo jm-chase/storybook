@@ -12,7 +12,8 @@
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "spike:consistency": "node --env-file-if-exists=.env.local --import tsx scripts/consistency-spike.ts",
     "validate:gate": "node --env-file-if-exists=.env.local --import tsx scripts/validate-gate.ts",
-    "spike:multichar": "node --env-file-if-exists=.env.local --import tsx scripts/multichar-spike.ts"
+    "spike:multichar": "node --env-file-if-exists=.env.local --import tsx scripts/multichar-spike.ts",
+    "validate:e2e": "node --import tsx scripts/e2e-book.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
