@@ -486,13 +486,22 @@ function ProjectView({
             📖 Download the book (PDF)
           </a>
         )}
+        {project.storyboard.length > 0 && (
+          <a
+            href={`/api/projects/${project.id}/pdf?bleed=1`}
+            title="For print-on-demand services: adds the standard 0.125in bleed on every edge"
+            style={{ ...btn(false), display: "inline-block", textDecoration: "none" }}
+          >
+            🖨️ Print-shop PDF (with bleed)
+          </a>
+        )}
         {project.cast.some((c) => c.locked) && <SeriesButton project={project} onSwitch={onProject} />}
       </div>
 
       <div style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px solid #00000012", opacity: 0.6 }}>
         <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>Coming next:</p>
         <p style={{ fontSize: "0.8rem", margin: 0 }}>
-          point-to-fix any detail · export the <strong>print-ready booklet</strong>.
+          more <strong>public-domain classics</strong> in the template gallery · richer occasion templates.
         </p>
       </div>
     </>
