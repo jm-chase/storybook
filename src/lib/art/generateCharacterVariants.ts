@@ -1,4 +1,5 @@
 import { generateCharacterSheet } from "./geminiProvider";
+import { getStyleSeed } from "./styleSeed";
 import { runGate, type GateOptions } from "./outputGate/runGate";
 import { defaultChecks } from "./outputGate/checks";
 import { COST_PER_IMAGE_USD } from "./cost";
@@ -29,8 +30,9 @@ export async function generateCharacterVariants(
   const variantsWanted = opts.variantsWanted ?? 3;
   const maxAttempts = opts.maxAttempts ?? 6; // reroll/cost budget
 
+  const styleSeed = (await getStyleSeed(style)) ?? undefined;
   const generate = async (): Promise<ImageCandidate> => {
-    const img = await generateCharacterSheet(brief, style);
+    const img = await generateCharacterSheet(brief, style, styleSeed);
     return { base64: img.base64, mimeType: img.mimeType };
   };
 

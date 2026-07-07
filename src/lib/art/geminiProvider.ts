@@ -35,20 +35,53 @@ function firstImage(res: GenerateContentResponse): GeneratedImage {
   throw new Error("Gemini returned no image part.");
 }
 
+/** A locked style-seed image (see lib/art/styleSeed.ts). */
+export interface StyleSeedRef {
+  base64: string;
+  mimeType: string;
+}
+
+interface LabeledRef {
+  label: string;
+  base64: string;
+  mimeType: string;
+}
+
+const STYLE_SEED_LABEL =
+  "the ART STYLE reference — match its rendering technique, texture, palette, linework, and lighting exactly, " +
+  "but do NOT copy its subject, scenery, or content";
+
+const SETTING_LABEL =
+  "the SETTING — set the scene in this exact location, keeping its architecture, materials, colours, and landscape consistent";
+
+/** Number the reference images and produce the matching inlineData parts. */
+function labeled(refs: LabeledRef[]): { labels: string; parts: { inlineData: { mimeType: string; data: string } }[] } {
+  return {
+    labels: refs.length === 0 ? "" : refs.map((r, i) => `Image ${i + 1} is ${r.label}.`).join(" ") + " ",
+    parts: refs.map((r) => ({ inlineData: { mimeType: r.mimeType, data: r.base64 } })),
+  };
+}
+
 /** Generate a character reference sheet from a brief + locked house style. */
 export async function generateCharacterSheet(
   brief: CharacterBrief,
-  style: HouseStyle
+  style: HouseStyle,
+  styleSeed?: StyleSeedRef
 ): Promise<GeneratedImage> {
   const ai = getGeminiClient();
+  const { labels, parts } = labeled(styleSeed ? [{ label: STYLE_SEED_LABEL, ...styleSeed }] : []);
   const prompt =
+    labels +
     `A children's picture-book character reference: a single character, full body, ` +
     `friendly and appealing, on a plain neutral background. ` +
     `Character: ${brief.description}. ` +
     `Art style: ${style.promptFragment}. ` +
     `No text or lettering anywhere in the image.`;
   const res = await withRetry(() =>
-    ai.models.generateContent({ model: GEMINI_IMAGE_MODEL, contents: prompt })
+    ai.models.generateContent({
+      model: GEMINI_IMAGE_MODEL,
+      contents: parts.length > 0 ? [{ text: prompt }, ...parts] : prompt,
+    })
   );
   return firstImage(res);
 }
@@ -121,28 +154,27 @@ export interface EnvironmentRef {
   mimeType: string;
 }
 
-const SETTING_INSTRUCTION =
-  "The FINAL reference image shows the SETTING. Set the scene in this exact location — " +
-  "keep its architecture, materials, colours, and landscape consistent with the setting image. ";
-
 /** A scene with NO cast (establishing shot / environment page). */
 export async function generateStandaloneScene(args: {
   scenePrompt: string;
   style: HouseStyle;
   environment?: EnvironmentRef;
+  styleSeed?: StyleSeedRef;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
+  const refs: LabeledRef[] = [];
+  if (args.styleSeed) refs.push({ label: STYLE_SEED_LABEL, ...args.styleSeed });
+  if (args.environment) refs.push({ label: SETTING_LABEL, base64: args.environment.base64, mimeType: args.environment.mimeType });
+  const { labels, parts } = labeled(refs);
   const text =
+    labels +
     `A children's picture-book illustration. Scene: ${args.scenePrompt}. ` +
-    (args.environment ? SETTING_INSTRUCTION : "") +
     `Art style: ${args.style.promptFragment}. ` +
     `A single illustration, no characters in focus, no text or lettering.`;
   const res = await withRetry(() =>
     ai.models.generateContent({
       model: GEMINI_IMAGE_MODEL,
-      contents: args.environment
-        ? [{ text }, { inlineData: { mimeType: args.environment.mimeType, data: args.environment.base64 } }]
-        : text,
+      contents: parts.length > 0 ? [{ text }, ...parts] : text,
     })
   );
   return firstImage(res);
@@ -166,27 +198,25 @@ export async function generateMultiCharacterScene(args: {
   scenePrompt: string;
   style: HouseStyle;
   environment?: EnvironmentRef;
+  styleSeed?: StyleSeedRef;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
-  const { characters, scenePrompt, style, environment } = args;
-  const labels = characters
-    .map((c, i) => `Image ${i + 1} is ${c.label} (${c.description}).`)
-    .join(" ");
+  const { characters, scenePrompt, style, environment, styleSeed } = args;
+  const refs: LabeledRef[] = [];
+  if (styleSeed) refs.push({ label: STYLE_SEED_LABEL, ...styleSeed });
+  for (const c of characters) refs.push({ label: `${c.label} (${c.description})`, base64: c.base64, mimeType: c.mimeType });
+  if (environment) refs.push({ label: SETTING_LABEL, base64: environment.base64, mimeType: environment.mimeType });
+  const { labels, parts } = labeled(refs);
   const text =
-    `${labels} ` +
+    labels +
     `Draw a SINGLE illustration showing these characters together. ` +
     `Keep EACH character exactly as in their reference image — same face, colours, ` +
     `proportions, and outfit — and do NOT blend or mix their features. ` +
-    (environment ? SETTING_INSTRUCTION : "") +
     `Scene: ${scenePrompt}. Art style: ${style.promptFragment}. No text or lettering.`;
   const res = await withRetry(() =>
     ai.models.generateContent({
       model: GEMINI_IMAGE_MODEL,
-      contents: [
-        { text },
-        ...characters.map((c) => ({ inlineData: { mimeType: c.mimeType, data: c.base64 } })),
-        ...(environment ? [{ inlineData: { mimeType: environment.mimeType, data: environment.base64 } }] : []),
-      ],
+      contents: [{ text }, ...parts],
     })
   );
   return firstImage(res);

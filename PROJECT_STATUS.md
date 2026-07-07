@@ -1,6 +1,6 @@
 # Project Status
 
-_Living document — updated every session. Last updated: 2026-06-25._
+_Living document — updated every session. Last updated: 2026-07-07._
 
 ## Built (functionally working right now)
 
@@ -59,9 +59,10 @@ _Living document — updated every session. Last updated: 2026-06-25._
 - **Print upscale — R-9 first pass (2026-07-07):** page art is upscaled to **2400px (300 DPI at 8in trim)** with sharp/lanczos and embedded as q90 JPEG at PDF-export time (originals untouched). Verified: 4-page PDF at print resolution, 4.9MB. Remaining R-9: bleed, imposition, CMYK/POD spec; optional AI upscaler for premium.
 - **Environment locking (2026-07-07, live-verified):** `EnvironmentSetting` on the project (validated short name + firewalled description + locked reference), `beat.environmentId`, `generateEnvironmentVariants` (establishing view, gated), env add/generate/lock/delete routes, scenes condition on the locked setting (`SETTING_INSTRUCTION` + ref image, both single- and multi-character), "The settings" studio section + where-does-it-happen select on beats (setting change clears page art). **Live test ($0.39):** locked "the old stone bridge," regenerated pages 1+3 — same stonework/moss/banks/trees across both pages while lighting followed each scene (rainy dusk vs golden sunset). The stone→wood drift class is closed. Env consistency is enforced by conditioning (not yet judged post-hoc — acceptable v1).
 - **Point-to-fix — Slice 3, THE MAGIC (2026-07-07, live-verified):** `editImage` (targeted instruction edit) + `refineImageVariants` — the gate swaps character-consistency for an **edit-fidelity check** (result must differ from the original ONLY by the requested change). `POST .../beats/[beatId]/refine` + ✏️ UI on locked pages (say it plainly → choose → relock). **Live test:** "add a small red ladybug resting on the bridge railing" on the 3-character page → 3 clean variants, $0.117, ladybug present, everything else pixel-faithful. Follow-up: same refine for locked cast references; true tap-coordinates later.
+- **Style-seed locking — D-020 refinement 1 RESOLVED (2026-07-07, live-verified):** curated **style plates** (one per house style, same neutral meadow subject; 2 candidates each via `npm run seeds:candidates` ~$0.39, hand-curated — `bright-and-round` #1 rejected for kawaii faces on scenery = content-leakage risk) checked in at `assets/styleSeeds/<styleId>.jpg` (512px q85, 29–110KB). `getStyleSeed()` loads + caches; the provider's new **labeled-reference structure** puts the seed FIRST on every character/scene/environment generation with a style-only instruction ("match technique/texture/palette… do NOT copy its subject"). Deliberately unseeded: refine (original is its own anchor) + eval `generateScene` (battery comparability). **Live validation (`npm run validate:seeds`, $0.08):** painted-wonder badger sheet + unrelated night-bakery scene — style held perfectly, zero meadow/bridge/tree leakage, both passed the gate first attempt. Style no longer depends on prompt text alone.
 - **Skin 3 — indie-author manuscript mode (thin) + beat editing (2026-07-07):** `beatsFromManuscript` (blank-line page split, caps, sceneDescription defaults to the page text; 2 tests), `POST /api/projects/from-manuscript`, "Illustrate your manuscript" section in the picker. **Beat-edit UI** (all skins): edit scene/text/cast per page; text-only edits keep the locked art, scene/cast edits clear it (verified live both ways). All three D-023 skins now exist on the one engine.
 
-Not yet wired end-to-end: no Claude personalization pass, no output-moderation pass (layer 2), no full wizard flow, no environment locking, no point-to-fix.
+Not yet wired end-to-end: no Claude personalization pass, no output-moderation pass (layer 2), no full wizard flow. Remaining print gap: POD prepress (bleed/imposition/CMYK — rest of R-9).
 
 ## In Progress
 
@@ -80,7 +81,7 @@ Product is now **art-first** (D-014). Prose is parked. The existing prose skelet
 2. ✅ **Storyboard + scene generation** — done 2026-07-07, validated live.
 3. ✅ **PDF export** (booklet layout; R-9 upscale still open) → **first real book end-to-end, $0.74**. The spine exists.
 4. **Skins:** ✅ skin 2 first pass (occasions + Wonderland). Next: skin 3 (manuscript-in author flow, thin).
-5. Then: environment locking (bridge drifted stone→wood in the e2e — next consistency frontier), point-to-fix/inpaint (Slice 3 magic), style-seed locking, progress streaming (W-3), print upscale (R-9), series ("same cast, new adventure").
+5. ✅ ALL DONE 2026-07-07: environment locking, point-to-fix/inpaint, style-seed locking, progress streaming (W-3), print upscale first pass (R-9), series ("same cast, new adventure"). Remaining engine work: POD prepress (rest of R-9), identity/wardrobe prompt separation (D-020 refinement 2), composition prompts.
 6. (Deferred) Story-craft analysis (B-1) once references arrive; launch gates (`LAUNCH_GATES.md`) before real users.
 
 ## BLOCKERS (non-code) — need James's input

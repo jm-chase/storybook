@@ -1,4 +1,5 @@
 import { generateMultiCharacterScene, generateStandaloneScene, type CharacterRef, type EnvironmentRef } from "./geminiProvider";
+import { getStyleSeed } from "./styleSeed";
 import { runGate, type GateOptions } from "./outputGate/runGate";
 import { defaultChecks } from "./outputGate/checks";
 import { COST_PER_IMAGE_USD } from "./cost";
@@ -23,11 +24,12 @@ export async function generateSceneVariants(args: {
   const variantsWanted = args.opts?.variantsWanted ?? 3;
   const maxAttempts = args.opts?.maxAttempts ?? 6;
 
+  const styleSeed = (await getStyleSeed(style)) ?? undefined;
   const generate = async (): Promise<ImageCandidate> => {
     const img =
       characters.length === 0
-        ? await generateStandaloneScene({ scenePrompt, style, environment })
-        : await generateMultiCharacterScene({ characters, scenePrompt, style, environment });
+        ? await generateStandaloneScene({ scenePrompt, style, environment, styleSeed })
+        : await generateMultiCharacterScene({ characters, scenePrompt, style, environment, styleSeed });
     return { base64: img.base64, mimeType: img.mimeType };
   };
 

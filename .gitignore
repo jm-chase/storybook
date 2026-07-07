@@ -30,6 +30,8 @@ next-env.d.ts
 /spike-output/
 /multichar-output/
 /eval-output/
+/seed-candidates/
+/seed-validation/
 
 # os / editor
 .DS_Store

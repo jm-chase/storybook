@@ -14,7 +14,9 @@
     "validate:gate": "node --env-file-if-exists=.env.local --import tsx scripts/validate-gate.ts",
     "spike:multichar": "node --env-file-if-exists=.env.local --import tsx scripts/multichar-spike.ts",
     "validate:e2e": "node --import tsx scripts/e2e-book.ts",
-    "eval:consistency": "node --env-file-if-exists=.env.local --import tsx scripts/eval-consistency.ts"
+    "eval:consistency": "node --env-file-if-exists=.env.local --import tsx scripts/eval-consistency.ts",
+    "seeds:candidates": "node --env-file-if-exists=.env.local --import tsx scripts/generate-style-seeds.ts",
+    "validate:seeds": "node --env-file-if-exists=.env.local --import tsx scripts/validate-seeds.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
