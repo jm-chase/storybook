@@ -1511,11 +1511,12 @@ const labelText: React.CSSProperties = { fontSize: "0.8rem", fontWeight: 600 };
 
 function card(active: boolean): React.CSSProperties {
   return {
-    border: `2px solid ${active ? "#c2724f" : "#00000018"}`,
-    borderRadius: 10,
-    padding: "0.6rem",
+    border: `2px solid ${active ? "var(--accent)" : "transparent"}`,
+    borderRadius: 14,
+    padding: "0.7rem",
     cursor: "pointer",
-    background: "#fff",
+    background: "var(--surface)",
+    boxShadow: "var(--shadow-soft)",
   };
 }
 
@@ -1524,10 +1525,10 @@ function inputStyle(error: boolean): React.CSSProperties {
     display: "block",
     width: "100%",
     marginTop: 4,
-    padding: "0.45rem 0.55rem",
-    borderRadius: 6,
-    border: `1px solid ${error ? "#c2724f" : "#00000022"}`,
-    background: "#fff",
+    padding: "0.5rem 0.65rem",
+    borderRadius: 9,
+    border: `1px solid ${error ? "var(--accent)" : "var(--line)"}`,
+    background: "var(--surface)",
     fontFamily: "inherit",
     fontSize: "0.9rem",
   };
@@ -1535,14 +1536,15 @@ function inputStyle(error: boolean): React.CSSProperties {
 
 function btn(primary: boolean): React.CSSProperties {
   return {
-    padding: "0.5rem 0.9rem",
-    borderRadius: 8,
-    border: "none",
+    padding: "0.5rem 0.95rem",
+    borderRadius: 10,
+    border: primary ? "none" : "1px solid var(--line)",
     cursor: "pointer",
-    fontWeight: 600,
+    fontWeight: 700,
     fontSize: "0.85rem",
-    background: primary ? "#c2724f" : "#eee",
-    color: primary ? "#fff" : "#333",
+    background: primary ? "var(--accent)" : "var(--surface)",
+    color: primary ? "#fff" : "#41403d",
+    boxShadow: primary ? "0 1px 2px rgba(43,35,26,0.18)" : "0 1px 2px rgba(43,35,26,0.06)",
   };
 }
 
@@ -1551,7 +1553,7 @@ function btnSmall(primary: boolean): React.CSSProperties {
 }
 
 function Err({ children }: { children: React.ReactNode }) {
-  return <span style={{ color: "#a8442a", fontSize: "0.75rem", display: "block" }}>{children}</span>;
+  return <span style={{ color: "var(--accent-deep)", fontSize: "0.75rem", display: "block" }}>{children}</span>;
 }
 
 /** R-7 scaffolding: "try one" starters shown while a box is empty — click to fill, then edit. */

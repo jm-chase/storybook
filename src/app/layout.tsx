@@ -1,5 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Nunito } from "next/font/google";
+import "./globals.css";
+
+const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"] });
 
 export const metadata: Metadata = {
   title: "Storybook (working name)",
@@ -7,20 +11,15 @@ export const metadata: Metadata = {
     "Parent-authored, AI-assisted personalized children's storybooks, exported as print-ready booklets.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body
-        style={{
-          margin: 0,
-          fontFamily:
-            "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-          background: "#F4F1EA",
-          color: "#2b2b2b",
-        }}
-      >
-        {children}
-      </body>
+      <body className={nunito.className}>{children}</body>
     </html>
   );
 }

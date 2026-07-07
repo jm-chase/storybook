@@ -1,0 +1,92 @@
+/* Design tokens + everything inline styles can't express (hover/focus/media
+   queries). Component styling stays in the studio's style helpers, which
+   reference these tokens via var(--…). */
+
+:root {
+  --paper: #f4f1ea;
+  --surface: #ffffff;
+  --ink: #2b2b2b;
+  --ink-soft: #5c564d;
+  --accent: #c2724f;
+  --accent-deep: #a8442a;
+  --line: #00000015;
+  --shadow-soft: 0 1px 2px rgba(43, 35, 26, 0.05), 0 6px 20px rgba(43, 35, 26, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+}
+
+a {
+  color: var(--accent-deep);
+}
+
+img {
+  max-width: 100%;
+}
+
+::selection {
+  background: rgba(194, 114, 79, 0.25);
+}
+
+/* Interactive states (inline styles can't do these) */
+button {
+  font-family: inherit;
+  transition: filter 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
+}
+button:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(194, 114, 79, 0.16);
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Mobile (R-10): tighten the shell set inline by the page. */
+@media (max-width: 640px) {
+  main {
+    padding: 1.25rem 1rem !important;
+  }
+  h1 {
+    font-size: 1.35rem !important;
+  }
+}
