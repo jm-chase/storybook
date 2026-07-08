@@ -3,6 +3,7 @@ import { createProject, saveProject } from "@/lib/project/store";
 import { instantiateTemplate } from "@/lib/project/fromTemplate";
 import { TEMPLATE_BY_ID } from "@/content/bookTemplates";
 import { HOUSE_STYLES } from "@/content/houseStyles";
+import { screenFields } from "@/lib/safety/moderateFreeform";
 
 // Create a project from a book template (skin 2): the parent supplies only the
 // hero; the cast + storyboard arrive prefilled, ready to lock and illustrate.
@@ -33,6 +34,14 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+
+  // Only the PARENT-entered hero fields need screening — the rest is authored.
+  const hero = built.value.cast.find((c) => c.role === "hero");
+  const screened = await screenFields({
+    heroName: hero?.name ?? "",
+    heroDescription: hero?.description ?? "",
+  });
+  if (!screened.ok) return NextResponse.json({ error: screened.message }, { status: screened.status });
 
   const project = await createProject({ title: built.value.title, styleId });
   project.cast = built.value.cast;

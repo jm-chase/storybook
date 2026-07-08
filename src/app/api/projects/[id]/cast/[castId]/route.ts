@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProject, saveProject } from "@/lib/project/store";
 import { buildCharacterBrief } from "@/lib/art/brief";
 import { HOUSE_STYLES } from "@/content/houseStyles";
+import { screenFields } from "@/lib/safety/moderateFreeform";
 
 export const runtime = "nodejs";
 
@@ -36,6 +37,9 @@ export async function PATCH(req: Request, { params }: Params) {
       { status: 400 }
     );
   }
+  const screened = await screenFields({ name: built.brief.name, description: built.brief.description });
+  if (!screened.ok) return NextResponse.json({ error: screened.message }, { status: screened.status });
+
   member.name = built.brief.name;
   member.description = built.brief.description;
   const saved = await saveProject(project);

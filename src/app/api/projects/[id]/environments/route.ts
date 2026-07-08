@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProject, saveProject, newId } from "@/lib/project/store";
 import { validateField } from "@/lib/validation";
 import type { EnvironmentSetting } from "@/lib/project/types";
+import { screenFields } from "@/lib/safety/moderateFreeform";
 
 // Add a setting: short validated name + freeform art-only description (D-018
 // firewall, same as characters). Lock flow mirrors cast.
@@ -38,6 +39,9 @@ export async function POST(req: Request, { params }: Params) {
   if (Object.keys(fields).length > 0) {
     return NextResponse.json({ error: "validation", fields }, { status: 400 });
   }
+
+  const screened = await screenFields({ name: (nameRes as { ok: true; value: string }).value, description });
+  if (!screened.ok) return NextResponse.json({ error: screened.message }, { status: screened.status });
 
   const environment: EnvironmentSetting = {
     id: newId(),

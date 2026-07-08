@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProject, saveProject } from "@/lib/project/store";
 import { validateBeatInput } from "@/lib/project/beats";
+import { screenFields } from "@/lib/safety/moderateFreeform";
 
 export const runtime = "nodejs";
 
@@ -36,6 +37,12 @@ export async function PATCH(req: Request, { params }: Params) {
       { error: "validation", fields: Object.fromEntries(Object.entries(built.errors).map(([k, m]) => [k, { message: m }])) },
       { status: 400 }
     );
+  }
+
+  const textChanged = built.value.sceneDescription !== beat.sceneDescription || built.value.text !== beat.text;
+  if (textChanged) {
+    const screened = await screenFields({ sceneDescription: built.value.sceneDescription, text: built.value.text });
+    if (!screened.ok) return NextResponse.json({ error: screened.message }, { status: screened.status });
   }
 
   const sceneChanged =

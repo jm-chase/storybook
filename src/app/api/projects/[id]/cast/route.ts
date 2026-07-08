@@ -3,6 +3,7 @@ import { getProject, saveProject, newId } from "@/lib/project/store";
 import { buildCharacterBrief } from "@/lib/art/brief";
 import { HOUSE_STYLES } from "@/content/houseStyles";
 import { CAST_ROLES, type CastMember, type CastRole } from "@/lib/project/types";
+import { screenFields } from "@/lib/safety/moderateFreeform";
 
 // Add a cast member (D-022): role + validated name + firewalled freeform
 // description. The member is created UNLOCKED — generation + choose-from-3 +
@@ -42,6 +43,9 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "validation", fields }, { status: 400 });
   }
   if (!built.ok) return NextResponse.json({ error: "validation" }, { status: 400 }); // narrows type; unreachable
+
+  const screened = await screenFields({ name: built.brief.name, description: built.brief.description });
+  if (!screened.ok) return NextResponse.json({ error: screened.message }, { status: screened.status });
 
   const member: CastMember = {
     id: newId(),

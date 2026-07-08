@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProject, saveProject, newId } from "@/lib/project/store";
 import { validateBeatInput } from "@/lib/project/beats";
 import type { StoryBeat } from "@/lib/project/types";
+import { screenFields } from "@/lib/safety/moderateFreeform";
 
 // Add a storyboard beat: what happens visually, the page text, who's in it.
 
@@ -32,6 +33,9 @@ export async function POST(req: Request, { params }: Params) {
       { status: 400 }
     );
   }
+
+  const screened = await screenFields({ sceneDescription: built.value.sceneDescription, text: built.value.text });
+  if (!screened.ok) return NextResponse.json({ error: screened.message }, { status: screened.status });
 
   const beat: StoryBeat = { id: newId(), ...built.value };
   project.storyboard.push(beat);

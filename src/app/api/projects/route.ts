@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createProject, listProjects } from "@/lib/project/store";
 import { HOUSE_STYLES } from "@/content/houseStyles";
+import { screenFields } from "@/lib/safety/moderateFreeform";
 
 // Project collection: list + create (R-6). Server-side filesystem store; the
 // browser only ever sees project documents and image URLs, never paths.
@@ -32,6 +33,9 @@ export async function POST(req: Request) {
   if (Object.keys(fields).length > 0) {
     return NextResponse.json({ error: "validation", fields }, { status: 400 });
   }
+
+  const screened = await screenFields({ title });
+  if (!screened.ok) return NextResponse.json({ error: screened.message }, { status: screened.status });
 
   const project = await createProject({ title, styleId });
   return NextResponse.json({ project }, { status: 201 });

@@ -1,6 +1,6 @@
 import { editImage } from "./geminiProvider";
 import { runGate, type GateOptions } from "./outputGate/runGate";
-import { safetyCheckStub, qualityCheck, visionVerdict } from "./outputGate/checks";
+import { safetyCheck, qualityCheck, visionVerdict } from "./outputGate/checks";
 import { COST_PER_IMAGE_USD } from "./cost";
 import type { HouseStyle } from "./types";
 import type { ImageCandidate, ImageCheck } from "./outputGate/types";
@@ -48,7 +48,7 @@ export async function refineImageVariants(args: {
 
   const outcome = await runGate(
     generate,
-    [safetyCheckStub, qualityCheck, editFidelityCheck(original, instruction)],
+    [safetyCheck, qualityCheck, editFidelityCheck(original, instruction)],
     { brief: { name: "", description: instruction, styleId: style.id }, style },
     { variantsWanted, maxAttempts, onEvent: args.opts?.onEvent }
   );

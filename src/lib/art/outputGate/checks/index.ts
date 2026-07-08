@@ -1,18 +1,20 @@
 import type { ImageCheck } from "../types";
-import { safetyCheckStub } from "./safetyCheck";
+import { safetyCheck } from "./safetyCheck";
 import { qualityCheck } from "./qualityCheck";
 import { consistencyCheck } from "./consistencyCheck";
 
 export { qualityCheck } from "./qualityCheck";
 export { consistencyCheck } from "./consistencyCheck";
-export { safetyCheckStub } from "./safetyCheck";
+export { safetyCheck } from "./safetyCheck";
 export { visionVerdict, type Verdict } from "./geminiVision";
 
 /**
  * The default gate: safety → quality → consistency.
- * Safety is FIRST (reject unsafe before any other work) and is currently a
- * dev-only stub (LAUNCH_GATES.md, LG-1 — replace before launch).
+ * Safety is FIRST (reject unsafe before any other work) and FAILS CLOSED.
+ * It runs a real Gemini-vision policy screen (SAFETY_PROVIDER=stub is the
+ * dev-only opt-out); a specialist CSAM provider still joins it before launch
+ * (LAUNCH_GATES.md, LG-1).
  */
 export function defaultChecks(): ImageCheck[] {
-  return [safetyCheckStub, qualityCheck, consistencyCheck];
+  return [safetyCheck, qualityCheck, consistencyCheck];
 }

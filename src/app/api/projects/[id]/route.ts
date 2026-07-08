@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProject, saveProject } from "@/lib/project/store";
 import { HOUSE_STYLES } from "@/content/houseStyles";
+import { screenFields } from "@/lib/safety/moderateFreeform";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,8 @@ export async function PATCH(req: Request, { params }: Params) {
     if (title.length === 0 || title.length > 80) {
       return NextResponse.json({ error: "validation", fields: { title: { message: "Title must be 1–80 characters." } } }, { status: 400 });
     }
+    const screened = await screenFields({ title });
+    if (!screened.ok) return NextResponse.json({ error: screened.message }, { status: screened.status });
     project.title = title;
   }
   if (typeof b.styleId === "string" && b.styleId !== project.styleId) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createProject, saveProject } from "@/lib/project/store";
 import { beatsFromManuscript } from "@/lib/project/fromManuscript";
 import { HOUSE_STYLES } from "@/content/houseStyles";
+import { screenFields } from "@/lib/safety/moderateFreeform";
 
 // Create a project from a pasted manuscript (skin 3 — indie authors): the
 // storyboard arrives prefilled with the page text; cast + scene refinement
@@ -33,6 +34,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "validation", fields }, { status: 400 });
   }
   if (!built.ok) return NextResponse.json({ error: "validation" }, { status: 400 }); // narrows type; unreachable
+
+  const screened = await screenFields({
+    title,
+    ...Object.fromEntries(built.beats.map((beat, i) => [`page${i + 1}`, `${beat.sceneDescription} ${beat.text}`])),
+  });
+  if (!screened.ok) return NextResponse.json({ error: screened.message }, { status: screened.status });
 
   const project = await createProject({ title, styleId });
   project.storyboard = built.beats;

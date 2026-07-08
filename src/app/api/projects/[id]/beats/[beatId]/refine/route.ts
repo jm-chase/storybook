@@ -3,6 +3,7 @@ import { getProject, readImage } from "@/lib/project/store";
 import { refineImageVariants, MAX_FIX_INSTRUCTION } from "@/lib/art/refineImage";
 import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
 import { streamNdjson } from "@/lib/api/streamNdjson";
+import { screenFields } from "@/lib/safety/moderateFreeform";
 
 // Point-to-fix a beat's LOCKED art: say the fix plainly, get gate-clean edited
 // variants that changed only that. Lock the winner via the normal lock route.
@@ -35,6 +36,9 @@ export async function POST(req: Request, { params }: Params) {
       { status: 400 }
     );
   }
+
+  const screened = await screenFields({ instruction });
+  if (!screened.ok) return NextResponse.json({ error: screened.message }, { status: screened.status });
 
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not configured on the server." }, { status: 500 });

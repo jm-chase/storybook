@@ -3,6 +3,7 @@ import { buildCharacterBrief } from "@/lib/art/brief";
 import { HOUSE_STYLES, HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
 import { generateCharacterVariants } from "@/lib/art/generateCharacterVariants";
 import { streamNdjson } from "@/lib/api/streamNdjson";
+import { screenFields } from "@/lib/safety/moderateFreeform";
 
 // Server-side character generation (W-1 / LG-6): the browser calls THIS endpoint;
 // the Gemini key never leaves the server. Generation runs through the Output Gate
@@ -28,6 +29,9 @@ export async function POST(req: Request) {
   if (!built.ok) {
     return NextResponse.json({ error: "validation", fields: built.errors }, { status: 400 });
   }
+
+  const screened = await screenFields({ name: built.brief.name, description: built.brief.description });
+  if (!screened.ok) return NextResponse.json({ error: screened.message }, { status: screened.status });
 
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not configured on the server." }, { status: 500 });
