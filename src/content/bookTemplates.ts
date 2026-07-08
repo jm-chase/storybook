@@ -26,11 +26,18 @@ export interface TemplateCastMember {
   description: string;
 }
 
+export interface TemplateEnvironment {
+  name: string;
+  description: string;
+}
+
 export interface TemplateBeat {
   sceneDescription: string;
   text: string;
   /** Names (from cast below, or "hero") appearing in this beat. */
   castNames: string[];
+  /** Recurring location (from environments below) — locked once, held across pages. */
+  environmentName?: string;
 }
 
 export interface BookTemplate {
@@ -41,6 +48,8 @@ export interface BookTemplate {
   defaultStyleId: string;
   /** The hero is implicit in every template — parent-named and parent-described. */
   cast: TemplateCastMember[];
+  /** Recurring locations; any place appearing on 2+ pages belongs here. */
+  environments?: TemplateEnvironment[];
   beats: TemplateBeat[];
 }
 
@@ -278,7 +287,21 @@ export const BOOK_TEMPLATES: BookTemplate[] = [
     title: "{hero} and the Three Little Pigs",
     blurb: "Straw, sticks, bricks — and one out-of-breath wolf. (Public domain, retold.)",
     defaultStyleId: "wobbly-world",
+    // Continuity notes (learned from the first Finn run): all three pigs are
+    // CAST (houses need owners); the wolf's description is anatomy-neutral —
+    // puffed cheeks are a per-scene action, not identity; every scene names
+    // motion and blow DIRECTION; recurring locations are environments.
     cast: [
+      {
+        role: "friend",
+        name: "Straw Pig",
+        description: "a small skinny cheerful pig in a floppy straw sun hat and a yellow neckerchief",
+      },
+      {
+        role: "friend",
+        name: "Stick Pig",
+        description: "a middle-sized earnest pig with round wire glasses and a buttoned green vest",
+      },
       {
         role: "friend",
         name: "Brick Pig",
@@ -288,40 +311,68 @@ export const BOOK_TEMPLATES: BookTemplate[] = [
       {
         role: "adversary",
         name: "the Wolf",
+        description: "a scraggly grey wolf in a blue bandana and patched brown overalls, more windbag than scary",
+      },
+    ],
+    environments: [
+      {
+        name: "the straw house",
         description:
-          "a scraggly grey wolf with huge cheeks made for huffing and puffing, more windbag than scary",
+          "a small wobbly cottage built entirely of golden straw bales, with a shaggy thatched roof and a crooked straw chimney, standing on a sunny green meadow beside a winding dirt lane with hedgerows",
+      },
+      {
+        name: "the meadow lane",
+        description:
+          "a sunny green meadow with soft rolling hills, a winding dirt lane, scattered wildflowers, and hedgerows under a bright blue sky",
+      },
+      {
+        name: "the brick house",
+        description:
+          "a sturdy little house built of warm red bricks with a grey slate roof, a stout chimney, a wooden door, and a tidy green lawn",
       },
     ],
     beats: [
       {
-        sceneDescription: "the hero stacks straw for a wobbly little house in a sunny meadow while a grey wolf watches from behind a distant hedge",
+        sceneDescription:
+          "Straw Pig proudly pats the wall of his finished straw house while the hero walks around it inspecting it doubtfully, and the wolf peeks over a hedge far in the background",
         text: "The first house was straw. It went up before lunch. “Hmm,” said {hero}.",
-        castNames: ["hero", "the Wolf"],
+        castNames: ["hero", "Straw Pig", "the Wolf"],
+        environmentName: "the straw house",
       },
       {
-        sceneDescription: "the wolf takes an enormous breath, cheeks like balloons, as the straw house explodes into flying golden wisps, the hero dashing away",
+        sceneDescription:
+          "the wolf, cheeks puffed like balloons, blows a mighty gust STRAIGHT AT the straw house as it bursts apart into flying golden wisps, while the hero and Straw Pig sprint away mid-stride",
         text: "“I'll HUFF and I'll PUFF—” And he did. Oh, he did.",
-        castNames: ["hero", "the Wolf"],
+        castNames: ["hero", "Straw Pig", "the Wolf"],
+        environmentName: "the straw house",
       },
       {
-        sceneDescription: "the stick house rattles and clatters apart as the wolf blows, sticks whirling like a windstorm, the hero pointing up the lane toward a brick house",
+        sceneDescription:
+          "the wolf blows a huge gust DIRECTLY AT a rattling house of sticks so hard the sticks whirl apart, while Stick Pig and the hero run down the lane, the hero pointing ahead toward a distant brick house",
         text: "Sticks flew like a magic trick. “The brick house!” shouted {hero}. “RUN!”",
-        castNames: ["hero", "the Wolf"],
+        castNames: ["hero", "Stick Pig", "the Wolf"],
+        environmentName: "the meadow lane",
       },
       {
-        sceneDescription: "the hero and the brick pig peek from the window of a solid little brick house while the wolf, red-faced and dizzy, blows with all his might",
+        sceneDescription:
+          "the wolf, red-faced with cheeks puffed to bursting, blows with all his might STRAIGHT AT the sturdy brick house, leaning into the gust, while the hero and Brick Pig watch calmly from the window inside",
         text: "He huffed. He puffed. He huffed-and-puffed. The bricks did not care one bit.",
         castNames: ["hero", "Brick Pig", "the Wolf"],
+        environmentName: "the brick house",
       },
       {
-        sceneDescription: "the exhausted wolf lies flat on his back in the garden seeing stars while the hero and the brick pig offer him a glass of lemonade",
+        sceneDescription:
+          "the wolf lies flat on his back on the lawn, dizzy and completely out of breath, while the hero kneels beside him holding out a glass of lemonade and Brick Pig stands over him with hands on hips",
         text: "All that puffing makes a wolf thirsty. “Truce?” he wheezed. “Truce,” said {hero}.",
         castNames: ["hero", "Brick Pig", "the Wolf"],
+        environmentName: "the brick house",
       },
       {
-        sceneDescription: "the hero, the brick pig, and the wolf lay bricks together for a fourth little house at sunset, the wolf wearing a tiny hard hat",
+        sceneDescription:
+          "the hero and Brick Pig lay bricks for a new little house at sunset while the wolf, wearing a tiny hard hat, carries a stack of bricks toward them, everyone busy and mid-motion",
         text: "The fourth house was brick too. Built by everyone. Blown down by no one.",
         castNames: ["hero", "Brick Pig", "the Wolf"],
+        environmentName: "the meadow lane",
       },
     ],
   },

@@ -18,6 +18,10 @@ test("every template instantiates cleanly (content lint)", () => {
         assert.ok(!beat.sceneDescription.includes("{hero}"));
         const castIds = new Set(r.value.cast.map((c) => c.id));
         for (const cid of beat.castIds) assert.ok(castIds.has(cid), `${template.id}: beat castId not in cast`);
+        if (beat.environmentId) {
+          const envIds = new Set(r.value.environments.map((e) => e.id));
+          assert.ok(envIds.has(beat.environmentId), `${template.id}: beat environmentId not in environments`);
+        }
       }
     }
     assert.ok(HOUSE_STYLE_BY_ID[template.defaultStyleId], `${template.id}: unknown defaultStyleId`);

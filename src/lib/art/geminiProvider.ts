@@ -228,6 +228,10 @@ export async function generateMultiCharacterScene(args: {
     `Keep each character's outfit from the reference too, UNLESS the scene clearly calls for ` +
     `different clothing (such as sleeping, swimming, or dressing up) — then change only the ` +
     `clothes and keep the character unmistakably recognizable. ` +
+    `Keep each character's SIZE relative to the others true to their reference proportions. ` +
+    `Pose every character mid-action, actually DOING what the scene describes — natural, lively ` +
+    `body language, facing and physically engaging their target — never stiffly standing and ` +
+    `facing the viewer unless the scene asks for it. ` +
     `Scene: ${scenePrompt}. ` +
     (args.captionSpace ? CAPTION_SPACE_INSTRUCTION : "") +
     `Art style: ${style.promptFragment}. No text or lettering.`;

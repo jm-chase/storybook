@@ -29,6 +29,7 @@ interface ProjectDoc {
   id: string;
   title: string;
   cast: { id: string; name: string; role: string; description: string }[];
+  environments: { id: string; name: string }[];
   storyboard: { id: string; text: string; castIds: string[] }[];
   styleId: string;
 }
@@ -80,7 +81,9 @@ async function main() {
     body: JSON.stringify({ templateId: TEMPLATE_ID, ...HERO }),
   });
   const pid = project.id;
-  console.log(`project: "${project.title}" (${pid}) — ${project.cast.length} cast, ${project.storyboard.length} beats\n`);
+  console.log(
+    `project: "${project.title}" (${pid}) — ${project.cast.length} cast, ${project.environments.length} settings, ${project.storyboard.length} beats\n`
+  );
 
   for (const member of project.cast) {
     await generateAndLock(
@@ -88,6 +91,16 @@ async function main() {
       "/api/generate-character",
       { name: member.name, description: member.description, styleId: project.styleId },
       `/api/projects/${pid}/cast/${member.id}/lock`
+    );
+  }
+
+  console.log();
+  for (const env of project.environments) {
+    await generateAndLock(
+      `setting ${env.name}`,
+      `/api/projects/${pid}/environments/${env.id}/generate`,
+      {},
+      `/api/projects/${pid}/environments/${env.id}/lock`
     );
   }
 

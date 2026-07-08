@@ -19,8 +19,10 @@ export const consistencyCheck: ImageCheck = {
         `${labels} The FINAL image is a story scene meant to feature ALL of these characters together. ` +
           "FAIL if any listed character is missing, or is not clearly the same character as its reference " +
           "(different face, hair, colours, or body), or if two characters' features have been blended or mixed. " +
-          "A change of CLOTHING that fits the scene (pajamas in bed, swimsuit in water) is fine and is NOT a fail, " +
-          "as long as the character is still unmistakably the same. " +
+          "CLOTHING rule: each character must wear the outfit shown in its reference UNLESS the scene clearly " +
+          "motivates different clothing (in bed → pajamas, in water → swimsuit). A character missing its reference " +
+          "outfit with no such reason IS a fail. " +
+          "Also FAIL if any character's SIZE relative to the others clearly contradicts the references. " +
           "PASS only if every listed character appears and each is unmistakably its reference."
       );
       return { check: "consistency", status: v.pass ? "pass" : "fail", reason: v.reason };
@@ -35,8 +37,9 @@ export const consistencyCheck: ImageCheck = {
       ],
       "Image 1 is a character reference. Image 2 is a story scene meant to feature the SAME character. " +
         "FAIL if Image 2 is not clearly the same character — different face, hair, colours, or body — " +
-        "or if its art style noticeably differs from Image 1. A change of CLOTHING that fits the scene " +
-        "(pajamas in bed, swimsuit in water) is fine and is NOT a fail. " +
+        "or if its art style noticeably differs from Image 1. CLOTHING rule: the character must wear the " +
+        "reference outfit unless the scene clearly motivates different clothing (in bed → pajamas, in water → " +
+        "swimsuit); missing the outfit with no such reason IS a fail. " +
         "PASS only if it is the same character in the same style."
     );
     return { check: "consistency", status: v.pass ? "pass" : "fail", reason: v.reason };

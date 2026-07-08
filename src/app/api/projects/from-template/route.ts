@@ -45,6 +45,7 @@ export async function POST(req: Request) {
 
   const project = await createProject({ title: built.value.title, styleId });
   project.cast = built.value.cast;
+  project.environments = built.value.environments;
   project.storyboard = built.value.storyboard;
   const saved = await saveProject(project);
   return NextResponse.json({ project: saved }, { status: 201 });

@@ -1,18 +1,21 @@
 import { validateField } from "../validation";
 import { newId } from "./store";
 import type { BookTemplate } from "../../content/bookTemplates";
-import type { CastMember, StoryBeat } from "./types";
+import type { CastMember, EnvironmentSetting, StoryBeat } from "./types";
 
 // Instantiate a book template (skin 2, D-023): authored cast + storyboard,
 // with the parent-supplied hero woven in. The hero's name is validated like
 // any name (shared with the story text); the hero's description is freeform
-// art-only, same firewall as the studio (D-018).
+// art-only, same firewall as the studio (D-018). Authored environments become
+// project settings (unlocked — lock before generating pages) and beats bind to
+// them by name, so recurring locations hold across pages.
 
 export const MAX_HERO_DESCRIPTION = 300;
 
 export interface TemplateInstance {
   title: string;
   cast: CastMember[];
+  environments: EnvironmentSetting[];
   storyboard: StoryBeat[];
 }
 
@@ -50,21 +53,36 @@ export function instantiateTemplate(
   }));
   const idByName = new Map<string, string>([["hero", hero.id], ...others.map((c) => [c.name, c.id] as const)]);
 
+  const environments: EnvironmentSetting[] = (template.environments ?? []).map((e) => ({
+    id: newId(),
+    name: e.name,
+    description: e.description,
+  }));
+  const envIdByName = new Map(environments.map((e) => [e.name, e.id]));
+
   const fill = (s: string) => s.replaceAll("{hero}", heroName);
 
-  const storyboard: StoryBeat[] = template.beats.map((b) => ({
-    id: newId(),
-    sceneDescription: fill(b.sceneDescription),
-    text: fill(b.text),
-    castIds: b.castNames.map((n) => {
-      const id = idByName.get(n);
-      if (!id) throw new Error(`template ${template.id}: beat references unknown cast name "${n}"`);
-      return id;
-    }),
-  }));
+  const storyboard: StoryBeat[] = template.beats.map((b) => {
+    let environmentId: string | undefined;
+    if (b.environmentName) {
+      environmentId = envIdByName.get(b.environmentName);
+      if (!environmentId) throw new Error(`template ${template.id}: beat references unknown environment "${b.environmentName}"`);
+    }
+    return {
+      id: newId(),
+      sceneDescription: fill(b.sceneDescription),
+      text: fill(b.text),
+      castIds: b.castNames.map((n) => {
+        const id = idByName.get(n);
+        if (!id) throw new Error(`template ${template.id}: beat references unknown cast name "${n}"`);
+        return id;
+      }),
+      ...(environmentId ? { environmentId } : {}),
+    };
+  });
 
   return {
     ok: true,
-    value: { title: fill(template.title), cast: [hero, ...others], storyboard },
+    value: { title: fill(template.title), cast: [hero, ...others], environments, storyboard },
   };
 }
