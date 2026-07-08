@@ -42,6 +42,7 @@ export async function generateSceneVariants(args: {
       // The gate's brief is character-oriented; for a scene the description is the scene itself.
       brief: { name: "", description: scenePrompt, styleId: style.id },
       style,
+      kind: "scene",
       references: characters.map((c) => ({ label: c.label, base64: c.base64, mimeType: c.mimeType })),
     },
     { variantsWanted, maxAttempts, onEvent: args.opts?.onEvent }

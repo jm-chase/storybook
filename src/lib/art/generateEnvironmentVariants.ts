@@ -32,7 +32,7 @@ export async function generateEnvironmentVariants(
   const outcome = await runGate(
     generate,
     defaultChecks(),
-    { brief: { name: "", description, styleId: style.id }, style },
+    { brief: { name: "", description, styleId: style.id }, style, kind: "environment" },
     { variantsWanted, maxAttempts, onEvent: opts.onEvent }
   );
 

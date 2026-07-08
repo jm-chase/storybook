@@ -1,5 +1,6 @@
 import React from "react";
 import { Document, Page, View, Text, Image, renderToBuffer } from "@react-pdf/renderer";
+import { PDFDocument } from "pdf-lib";
 import sharp from "sharp";
 import type { Project, StoryBeat } from "../project/types";
 import { readImage } from "../project/store";
@@ -221,8 +222,23 @@ export async function renderBookPdf(
       }
       gallery.push({ name: member.name, role: member.role, image });
     }
-    const padPages = interiorPageCount(project) - (2 + pages.length + 2);
-    return renderToBuffer(<PodInteriorDocument project={project} pages={pages} gallery={gallery} padPages={padPages} />);
+    // Render, then VERIFY the page count: react-pdf silently wraps overflowing
+    // sections (a big cast gallery) onto continuation pages, which would break
+    // the even-count/spine math. One correction pass adjusts the padding.
+    const target = interiorPageCount(project);
+    let padPages = target - (2 + pages.length + 2);
+    let buf = await renderToBuffer(<PodInteriorDocument project={project} pages={pages} gallery={gallery} padPages={padPages} />);
+    let count = (await PDFDocument.load(buf)).getPageCount();
+    if (count !== target) {
+      padPages += target - count;
+      if (padPages < 0) {
+        throw new Error(`POD interior overflows its page target (${count} rendered vs ${target}) — interiorPageCount needs updating for this book size.`);
+      }
+      buf = await renderToBuffer(<PodInteriorDocument project={project} pages={pages} gallery={gallery} padPages={padPages} />);
+      count = (await PDFDocument.load(buf)).getPageCount();
+      if (count !== target) throw new Error(`POD interior page count ${count} != target ${target} after correction.`);
+    }
+    return buf;
   }
 
   // Cover art: the hero's locked reference, if there is one.

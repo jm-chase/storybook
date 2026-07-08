@@ -31,6 +31,12 @@ export interface NamedReference {
 export interface GateContext {
   brief: CharacterBrief;
   style: HouseStyle;
+  /**
+   * What kind of image is being gated. Checks scope their clauses by this:
+   * a character SHEET legitimately sits on a plain background (no border
+   * check) and depicts no action (no action-fidelity check). Default: "scene".
+   */
+  kind?: "character-sheet" | "environment" | "scene";
   /** The locked character reference, for consistency checks (absent for the first/reference image). */
   referenceBase64?: string;
   /**

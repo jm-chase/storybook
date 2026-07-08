@@ -36,7 +36,12 @@ export async function generateCharacterVariants(
     return { base64: img.base64, mimeType: img.mimeType };
   };
 
-  const outcome = await runGate(generate, defaultChecks(), { brief, style }, { variantsWanted, maxAttempts, onEvent: opts.onEvent });
+  const outcome = await runGate(
+    generate,
+    defaultChecks(),
+    { brief, style, kind: "character-sheet" },
+    { variantsWanted, maxAttempts, onEvent: opts.onEvent }
+  );
 
   return {
     variants: outcome.variants,

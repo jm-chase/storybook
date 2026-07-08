@@ -49,7 +49,10 @@ export async function refineImageVariants(args: {
   const outcome = await runGate(
     generate,
     [safetyCheck, qualityCheck, editFidelityCheck(original, instruction)],
-    { brief: { name: "", description: instruction, styleId: style.id }, style },
+    // kind "character-sheet" skips the scene-only quality clauses (border /
+    // action): the description here is an EDIT instruction, and any framing
+    // change vs the original is caught by the edit-fidelity check anyway.
+    { brief: { name: "", description: instruction, styleId: style.id }, style, kind: "character-sheet" },
     { variantsWanted, maxAttempts, onEvent: args.opts?.onEvent }
   );
 

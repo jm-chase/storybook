@@ -7,24 +7,32 @@ import { visionVerdict } from "./geminiVision";
 // slipped through on the Finn book), and described-action fidelity (the wolf
 // must actually be blowing AT the house). A fail triggers an auto-reroll.
 
-const INSTRUCTION =
+const BASE_CLAUSES =
   "You are inspecting a single children's picture-book illustration for production defects. " +
   "FAIL it if you see ANY of these: " +
   "(1) anatomy errors — extra or missing limbs, hands, or fingers; a third arm/hand; malformed or distorted faces; " +
   "(2) a key prop badly out of proportion — e.g. an umbrella far too small or too large for the character; " +
-  "(3) garbled, misspelled, or unwanted text rendered inside the illustration; " +
-  "(4) a border, frame, or blank margin — the artwork must fill the entire image edge-to-edge; " +
-  "(5) the scene's key described action is missing or physically incoherent — e.g. a character described as " +
-  "blowing at or pushing a thing is facing away from it or disconnected from the effect. " +
-  "PASS it only if it is clean, well-formed, and free of these defects.";
+  "(3) garbled, misspelled, or unwanted text rendered inside the illustration";
+
+// Scene-only clauses. A character SHEET legitimately sits on a plain empty
+// background (border clause would false-positive — it burned the reroll
+// budget on the second Finn run) and depicts no action.
+const BORDER_CLAUSE =
+  "; (4) a drawn border, frame, or blank margin strip around the artwork — a full-bleed illustration must fill the image edge-to-edge";
+const ACTION_CLAUSE = (sceneDescription: string) =>
+  `; (5) the scene's key described action is missing or physically incoherent — e.g. a character described as ` +
+  `blowing at or pushing a thing is facing away from it or disconnected from the effect. ` +
+  `The scene description: ${JSON.stringify(sceneDescription)}`;
 
 export const qualityCheck: ImageCheck = {
   name: "quality",
   async run(candidate: ImageCandidate, ctx: GateContext): Promise<CheckResult> {
-    const v = await visionVerdict(
-      [candidate],
-      `${INSTRUCTION} For check (5), the scene description was: ${JSON.stringify(ctx.brief.description)}`
-    );
+    const kind = ctx.kind ?? "scene";
+    let instruction = BASE_CLAUSES;
+    if (kind !== "character-sheet") instruction += BORDER_CLAUSE;
+    if (kind === "scene") instruction += ACTION_CLAUSE(ctx.brief.description);
+    instruction += ". PASS it only if it is clean, well-formed, and free of these defects.";
+    const v = await visionVerdict([candidate], instruction);
     return { check: "quality", status: v.pass ? "pass" : "fail", reason: v.reason };
   },
 };
