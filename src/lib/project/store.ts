@@ -211,3 +211,19 @@ async function writeProjectFile(root: string, project: Project): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(path.join(dir, "project.json"), JSON.stringify(project, null, 2), "utf8");
 }
+
+/**
+ * Persist a book-level continuity report (audit log — one JSON file per run,
+ * newest discoverable by name). Returns the stored filename.
+ */
+export async function saveContinuityReport(
+  projectId: string,
+  report: unknown,
+  root: string = DEFAULT_ROOT()
+): Promise<string> {
+  const dir = path.join(projectDir(root, projectId), "continuity");
+  await fs.mkdir(dir, { recursive: true });
+  const file = `${Date.now()}.json`;
+  await fs.writeFile(path.join(dir, file), JSON.stringify(report, null, 2), "utf8");
+  return file;
+}

@@ -752,6 +752,7 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
   const [activeBeatId, setActiveBeatId] = useState<string | null>(null);
   const [editBeatId, setEditBeatId] = useState<string | null>(null);
   const [fixBeatId, setFixBeatId] = useState<string | null>(null);
+  const [fixInstruction, setFixInstruction] = useState("");
   const activeBeat = project.storyboard.find((b) => b.id === activeBeatId) ?? null;
   const fixBeat = project.storyboard.find((b) => b.id === fixBeatId) ?? null;
   const castById = new Map(project.cast.map((c) => [c.id, c]));
@@ -835,7 +836,13 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
                   </button>
                 )}
                 {beat.art && (
-                  <button onClick={() => setFixBeatId(beat.id)} style={btnSmall(true)}>
+                  <button
+                    onClick={() => {
+                      setFixInstruction("");
+                      setFixBeatId(beat.id);
+                    }}
+                    style={btnSmall(true)}
+                  >
                     ✏️ Point to fix
                   </button>
                 )}
@@ -867,17 +874,100 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
 
       {fixBeat && fixBeat.art && (
         <RefineWorkspace
-          key={fixBeat.id}
+          key={`${fixBeat.id}:${fixInstruction}`}
           title={`✏️ Fixing page ${project.storyboard.indexOf(fixBeat) + 1}`}
           description={fixBeat.sceneDescription}
           imageSrc={`/api/projects/${project.id}/images/${fixBeat.art.file}`}
           refinePath={`/api/projects/${project.id}/beats/${fixBeat.id}/refine`}
           lockPath={`/api/projects/${project.id}/beats/${fixBeat.id}/lock`}
+          initialInstruction={fixInstruction}
           onProject={onProject}
           onDone={() => setFixBeatId(null)}
         />
       )}
+
+      <ContinuityPanel
+        project={project}
+        onFix={(page, instruction) => {
+          const beat = project.storyboard[page - 1];
+          if (beat?.art) {
+            setFixInstruction(instruction);
+            setFixBeatId(beat.id);
+          }
+        }}
+      />
     </section>
+  );
+}
+
+/** Book-level continuity review: the cross-page check no single-image gate can
+ * do — reads the whole book in order and flags what a human editor would. */
+function ContinuityPanel({ project, onFix }: { project: Project; onFix: (page: number, instruction: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [report, setReport] = useState<{
+    pagesReviewed: number;
+    issues: { pages: number[]; severity: string; what: string; fix: { kind: string; page: number; instruction: string } }[];
+  } | null>(null);
+  const lockedPages = project.storyboard.filter((b) => b.art).length;
+  if (lockedPages < 2) return null;
+
+  async function review() {
+    setBusy(true);
+    setError("");
+    setReport(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/continuity`, { method: "POST" });
+      const d = await res.json();
+      if (!res.ok) setError(d.error ?? "review failed");
+      else setReport(d.report);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: "0.9rem", padding: "0.8rem", borderRadius: 12, background: "#00000006" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+        <button onClick={review} disabled={busy} style={btn(false)}>
+          {busy ? "📖 Reading the whole book…" : "📖 Review the whole book"}
+        </button>
+        <span style={{ fontSize: "0.72rem", opacity: 0.6 }}>
+          Checks the finished pages as a sequence — wardrobe, sizes, settings, cause-and-effect — like an editor would.
+        </span>
+      </div>
+      {error && <Err>{error}</Err>}
+      {report && report.issues.length === 0 && (
+        <p style={{ fontSize: "0.8rem", margin: "0.6rem 0 0", color: "#2a9d8f", fontWeight: 600 }}>
+          ✅ No continuity issues found across {report.pagesReviewed} pages.
+        </p>
+      )}
+      {report && report.issues.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.6rem" }}>
+          {report.issues.map((issue, i) => (
+            <div key={i} style={{ fontSize: "0.78rem", background: "var(--surface)", borderRadius: 8, padding: "0.55rem 0.7rem" }}>
+              <span style={{ fontWeight: 700, color: issue.severity === "major" ? "var(--accent-deep)" : "#8a6d3b" }}>
+                {issue.severity === "major" ? "⚠️ major" : "◦ minor"}
+              </span>{" "}
+              <span style={{ opacity: 0.7 }}>page{issue.pages.length > 1 ? "s" : ""} {issue.pages.join(", ")}:</span> {issue.what}
+              <div style={{ marginTop: 4, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                {issue.fix.kind === "refine" && issue.fix.instruction && project.storyboard[issue.fix.page - 1]?.art ? (
+                  <button onClick={() => onFix(issue.fix.page, issue.fix.instruction)} style={btnSmall(true)}>
+                    ✏️ Fix page {issue.fix.page}: “{issue.fix.instruction.slice(0, 60)}{issue.fix.instruction.length > 60 ? "…" : ""}”
+                  </button>
+                ) : (
+                  <span style={{ opacity: 0.65 }}>
+                    Suggested: regenerate page {issue.fix.page} (Edit the page to adjust its scene — that clears the art — then generate again).
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -890,6 +980,7 @@ function RefineWorkspace({
   imageSrc,
   refinePath,
   lockPath,
+  initialInstruction,
   onProject,
   onDone,
 }: {
@@ -898,10 +989,12 @@ function RefineWorkspace({
   imageSrc: string;
   refinePath: string;
   lockPath: string;
+  /** Prefill (e.g. a continuity-review fix suggestion) — still editable. */
+  initialInstruction?: string;
   onProject: (p: Project) => void;
   onDone: () => void;
 }) {
-  const [instruction, setInstruction] = useState("");
+  const [instruction, setInstruction] = useState(initialInstruction ?? "");
 
   return (
     <section style={{ border: "2px solid #c2724f33", borderRadius: 12, padding: "1rem", marginTop: "0.75rem" }}>

@@ -128,6 +128,24 @@ async function main() {
   console.log(`cover: ${cSize.width.toFixed(2)}x${cSize.height}pt (spine = width − 1170)`);
   await writeFile("classic-cover.pdf", cover);
 
+  // Book-level continuity review (logged to the project's continuity/ dir).
+  console.log("\nrunning continuity review…");
+  try {
+    const { report } = await api<{
+      report: { pagesReviewed: number; issues: { pages: number[]; severity: string; what: string }[] };
+    }>(`/api/projects/${pid}/continuity`, { method: "POST" });
+    if (report.issues.length === 0) {
+      console.log(`continuity: ✅ clean across ${report.pagesReviewed} pages`);
+    } else {
+      console.log(`continuity: ${report.issues.length} issue(s):`);
+      for (const it of report.issues) {
+        console.log(`  [${it.severity}] p${it.pages.join(",")}: ${it.what}`);
+      }
+    }
+  } catch (e) {
+    console.log(`continuity review failed (non-fatal): ${(e as Error).message}`);
+  }
+
   console.log(`\n✅ DONE. Total image cost: $${totalCost.toFixed(3)}`);
   console.log(`Open it: ${BASE}/studio → "${project.title}" (project ${pid})`);
 }
