@@ -15,6 +15,28 @@ export interface BeatInput {
   environmentId?: unknown;
 }
 
+/**
+ * Reorder the storyboard to the given beat-id sequence (board drag / narrative
+ * restructuring). The ids must be exactly a permutation of the current beats —
+ * reordering never adds, drops, or duplicates a page.
+ */
+export function reorderStoryboard(
+  project: Project,
+  beatIds: unknown
+): { ok: true } | { ok: false; error: string } {
+  if (!Array.isArray(beatIds) || beatIds.some((x) => typeof x !== "string")) {
+    return { ok: false, error: "beatIds must be an array of beat ids" };
+  }
+  const ids = beatIds as string[];
+  const current = project.storyboard.map((b) => b.id);
+  if (ids.length !== current.length || new Set(ids).size !== ids.length || !current.every((id) => ids.includes(id))) {
+    return { ok: false, error: "beatIds must be a permutation of the current pages" };
+  }
+  const byId = new Map(project.storyboard.map((b) => [b.id, b]));
+  project.storyboard = ids.map((id) => byId.get(id)!);
+  return { ok: true };
+}
+
 export type BeatResult =
   | { ok: true; value: { sceneDescription: string; text: string; castIds: string[]; environmentId?: string } }
   | { ok: false; errors: Record<string, string> };

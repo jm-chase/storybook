@@ -60,6 +60,13 @@ export interface StoryBeat {
   art?: LockedImage;
 }
 
+/** Free spatial layout of the infinite storyboard board: item id (beat / cast /
+ * environment) → canvas position. Purely presentational — reading order lives
+ * in `storyboard`, and the board syncs it from the pages' left-to-right x. */
+export interface BoardLayout {
+  positions: Record<string, { x: number; y: number }>;
+}
+
 export interface Project {
   id: string;
   title: string;
@@ -70,6 +77,8 @@ export interface Project {
   environments: EnvironmentSetting[];
   /** The book's pages, in reading order. */
   storyboard: StoryBeat[];
+  /** Saved infinite-board layout (optional; defaults are computed). */
+  board?: BoardLayout;
   createdAt: string;
   updatedAt: string;
   schemaVersion: 1;

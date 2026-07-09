@@ -70,7 +70,7 @@ export default function StudioPage() {
   }
 
   return (
-    <main style={{ maxWidth: 980, margin: "0 auto", padding: "2rem 1.5rem" }}>
+    <main style={{ maxWidth: project ? 1280 : 980, margin: "0 auto", padding: "2rem 1.5rem" }}>
       {project ? (
         <ProjectView
           project={project}
@@ -371,9 +371,14 @@ function ProjectView({
   onBack: () => void;
 }) {
   const style = HOUSE_STYLE_BY_ID[project.styleId];
+  const [section, setSection] = useState<SectionId>("overview");
   // The member currently in the generate→choose→lock workspace.
   const [activeId, setActiveId] = useState<string | null>(null);
   const [fixCastId, setFixCastId] = useState<string | null>(null);
+  // Beat point-to-fix state lives HERE so Reviews can open a prefilled fix on
+  // the Storyboard section (cross-section handoff).
+  const [fixBeatId, setFixBeatId] = useState<string | null>(null);
+  const [fixInstruction, setFixInstruction] = useState("");
   const active = project.cast.find((c) => c.id === activeId) ?? null;
   const fixMember = project.cast.find((c) => c.id === fixCastId) ?? null;
 
@@ -387,16 +392,24 @@ function ProjectView({
   }
 
   return (
-    <>
-      <button onClick={onBack} style={{ ...btn(false), marginBottom: "0.75rem" }}>
-        ← All books
-      </button>
+    <div style={{ display: "flex", gap: "1.4rem", alignItems: "flex-start" }}>
+      <NavRail
+        project={project}
+        section={section}
+        onSection={setSection}
+        onBack={onBack}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
       <h1 style={{ fontSize: "1.5rem", margin: "0 0 0.25rem" }}>{project.title}</h1>
       <p style={{ fontSize: "0.8rem", opacity: 0.7, marginTop: 0 }}>
-        Style: <strong>{style?.name ?? project.styleId}</strong> · every character below is drawn in this style and
-        stays consistent on every page.
+        Style: <strong>{style?.name ?? project.styleId}</strong> · every character is drawn in this style and stays
+        consistent on every page.
       </p>
 
+      {section === "overview" && <OverviewSection project={project} onSection={setSection} />}
+
+      {section === "cast" && (
+      <>
       <section style={{ margin: "1.25rem 0" }}>
         <p style={{ fontSize: "0.9rem", fontWeight: 600 }}>The cast</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.6rem" }}>
@@ -475,15 +488,253 @@ function ProjectView({
           onDone={() => setFixCastId(null)}
         />
       )}
+      </>
+      )}
 
-      <SettingsSection project={project} onProject={onProject} />
+      {section === "settings" && <SettingsSection project={project} onProject={onProject} />}
 
-      <StoryboardSection project={project} onProject={onProject} />
+      {section === "storyboard" && (
+        <StoryboardSection
+          project={project}
+          onProject={onProject}
+          fixBeatId={fixBeatId}
+          fixInstruction={fixInstruction}
+          onFixChange={(beatId, instruction) => {
+            setFixBeatId(beatId);
+            setFixInstruction(instruction);
+          }}
+        />
+      )}
 
-      <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", flexWrap: "wrap", marginTop: "0.5rem" }}>
+      {section === "reviews" && (
+        <ReviewsSection
+          project={project}
+          onFix={(page, instruction) => {
+            const beat = project.storyboard[page - 1];
+            if (beat?.art) {
+              setFixInstruction(instruction);
+              setFixBeatId(beat.id);
+              setSection("storyboard");
+            }
+          }}
+        />
+      )}
+
+      {section === "print" && <PrintSection project={project} onProject={onProject} />}
+      </div>
+    </div>
+  );
+}
+
+type SectionId = "overview" | "cast" | "settings" | "storyboard" | "reviews" | "print";
+
+const NAV_ITEMS: { id: SectionId; icon: string; label: string }[] = [
+  { id: "overview", icon: "📊", label: "Overview" },
+  { id: "cast", icon: "🧸", label: "Cast" },
+  { id: "settings", icon: "🏞️", label: "Settings & places" },
+  { id: "storyboard", icon: "📖", label: "Storyboard" },
+  { id: "reviews", icon: "🔍", label: "Reviews & insights" },
+  { id: "print", icon: "🖨️", label: "Print & export" },
+];
+
+/** Left navigation rail (product shell). */
+function NavRail({
+  project,
+  section,
+  onSection,
+  onBack,
+}: {
+  project: Project;
+  section: SectionId;
+  onSection: (s: SectionId) => void;
+  onBack: () => void;
+}) {
+  return (
+    <nav
+      style={{
+        width: 208,
+        flexShrink: 0,
+        position: "sticky",
+        top: "1rem",
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        background: "var(--surface)",
+        borderRadius: 14,
+        boxShadow: "var(--shadow-soft)",
+        padding: "0.7rem 0.55rem",
+      }}
+    >
+      <button onClick={onBack} style={{ ...navItemStyle(false), opacity: 0.75 }}>
+        ← All books
+      </button>
+      <div style={{ height: 1, background: "var(--line)", margin: "4px 6px" }} />
+      {NAV_ITEMS.map((item) => (
+        <button key={item.id} onClick={() => onSection(item.id)} style={navItemStyle(section === item.id)}>
+          <span style={{ width: 22, display: "inline-block" }}>{item.icon}</span> {item.label}
+        </button>
+      ))}
+      <div style={{ height: 1, background: "var(--line)", margin: "4px 6px" }} />
+      <a href={`/board/${project.id}`} style={{ ...navItemStyle(false), textDecoration: "none", display: "block" }}>
+        <span style={{ width: 22, display: "inline-block" }}>🗂️</span> Infinite board
+      </a>
+    </nav>
+  );
+}
+
+function navItemStyle(active: boolean): React.CSSProperties {
+  return {
+    display: "block",
+    width: "100%",
+    textAlign: "left",
+    padding: "0.5rem 0.65rem",
+    borderRadius: 9,
+    border: "none",
+    cursor: "pointer",
+    fontWeight: active ? 800 : 600,
+    fontSize: "0.82rem",
+    background: active ? "rgba(194,114,79,0.14)" : "transparent",
+    color: active ? "var(--accent-deep)" : "inherit",
+    boxShadow: "none",
+  };
+}
+
+/** Overview: at-a-glance progress + readiness (the "analysis" home). */
+function OverviewSection({ project, onSection }: { project: Project; onSection: (s: SectionId) => void }) {
+  const castLocked = project.cast.filter((c) => c.locked).length;
+  const envLocked = project.environments.filter((e) => e.locked).length;
+  const pagesArt = project.storyboard.filter((b) => b.art).length;
+  const stats: { label: string; value: string; done: boolean; go: SectionId }[] = [
+    { label: "Cast locked", value: `${castLocked} / ${project.cast.length}`, done: project.cast.length > 0 && castLocked === project.cast.length, go: "cast" },
+    { label: "Settings locked", value: `${envLocked} / ${project.environments.length}`, done: project.environments.length === 0 || envLocked === project.environments.length, go: "settings" },
+    { label: "Pages illustrated", value: `${pagesArt} / ${project.storyboard.length}`, done: project.storyboard.length > 0 && pagesArt === project.storyboard.length, go: "storyboard" },
+  ];
+  const printReady = stats.every((s) => s.done) && project.storyboard.length > 0;
+  return (
+    <section style={{ margin: "1.25rem 0" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.7rem" }}>
+        {stats.map((s) => (
+          <button
+            key={s.label}
+            onClick={() => onSection(s.go)}
+            style={{
+              ...card(false),
+              textAlign: "left",
+              borderLeft: `4px solid ${s.done ? "#2a9d8f" : "var(--accent)"}`,
+              fontFamily: "inherit",
+            }}
+          >
+            <div style={{ fontSize: "0.72rem", opacity: 0.65, fontWeight: 700 }}>{s.label}</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: 800 }}>{s.value}</div>
+            <div style={{ fontSize: "0.7rem", color: s.done ? "#2a9d8f" : "var(--accent-deep)", fontWeight: 700 }}>
+              {s.done ? "✓ complete" : "→ continue"}
+            </div>
+          </button>
+        ))}
+        <div style={{ ...card(false), cursor: "default", borderLeft: `4px solid ${printReady ? "#2a9d8f" : "#00000020"}` }}>
+          <div style={{ fontSize: "0.72rem", opacity: 0.65, fontWeight: 700 }}>Print readiness</div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 800 }}>{printReady ? "Ready" : "Not yet"}</div>
+          <div style={{ fontSize: "0.7rem", opacity: 0.7 }}>
+            {printReady ? "interior + cover can be exported" : "lock everything above first"}
+          </div>
+        </div>
+      </div>
+      <p style={{ fontSize: "0.8rem", opacity: 0.7, marginTop: "1rem" }}>
+        Work through the sections on the left — or arrange the whole book spatially on the{" "}
+        <a href={`/board/${project.id}`}>infinite board</a>. Run the editor passes under <strong>Reviews &amp; insights</strong>{" "}
+        before you print.
+      </p>
+    </section>
+  );
+}
+
+/** Reviews & insights: the two editor passes (visual continuity + narrative). */
+function ReviewsSection({ project, onFix }: { project: Project; onFix: (page: number, instruction: string) => void }) {
+  return (
+    <section style={{ margin: "1.25rem 0", display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div>
+        <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 0.4rem" }}>Visual continuity</p>
+        <ContinuityPanel project={project} onFix={onFix} />
+        {project.storyboard.filter((b) => b.art).length < 2 && (
+          <p style={{ fontSize: "0.78rem", opacity: 0.6 }}>Lock at least two pages to run the visual continuity review.</p>
+        )}
+      </div>
+      <NarrativePanel project={project} />
+    </section>
+  );
+}
+
+/** Narrative read-through: arc stages + structural issues (text-level). */
+function NarrativePanel({ project }: { project: Project }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [report, setReport] = useState<{
+    arcStages: { page: number; stage: string; note: string }[];
+    issues: { pages: number[]; what: string; suggestion: string }[];
+  } | null>(null);
+
+  async function run() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}/narrative`, { method: "POST" });
+      const d = await res.json();
+      if (!res.ok) setError(d.error ?? "review failed");
+      else setReport(d.report);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 0.4rem" }}>Narrative read-through</p>
+      <div style={{ padding: "0.8rem", borderRadius: 12, background: "#00000006" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+          <button onClick={run} disabled={busy || project.storyboard.length < 2} style={btn(false)}>
+            {busy ? "📖 Reading the story…" : "📖 Read the story like an editor"}
+          </button>
+          <span style={{ fontSize: "0.72rem", opacity: 0.6 }}>
+            Arc and pacing over the page text — opening, build, turn, resolution.
+          </span>
+        </div>
+        {error && <Err>{error}</Err>}
+        {report && (
+          <div style={{ marginTop: "0.6rem", fontSize: "0.8rem" }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {report.arcStages.map((s) => (
+                <span key={s.page} title={s.note} style={{ background: "var(--surface)", borderRadius: 8, padding: "3px 9px", fontWeight: 700 }}>
+                  p{s.page} <span style={{ color: "var(--accent-deep)" }}>{s.stage}</span>
+                </span>
+              ))}
+            </div>
+            {report.issues.length === 0 ? (
+              <p style={{ color: "#2a9d8f", fontWeight: 700 }}>✅ The story reads well.</p>
+            ) : (
+              report.issues.map((it, i) => (
+                <div key={i} style={{ background: "var(--surface)", borderRadius: 8, padding: "0.55rem 0.7rem", marginTop: 8 }}>
+                  <div>
+                    <strong>p{it.pages.join(", ")}:</strong> {it.what}
+                  </div>
+                  <div style={{ opacity: 0.75, marginTop: 3 }}>💡 {it.suggestion}</div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Print & export: every output the book can become. */
+function PrintSection({ project, onProject }: { project: Project; onProject: (p: Project) => void }) {
+  return (
+    <section style={{ margin: "1.25rem 0" }}>
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", flexWrap: "wrap" }}>
         {project.storyboard.length > 0 && (
           <a href={`/api/projects/${project.id}/pdf`} style={{ ...btn(true), display: "inline-block", textDecoration: "none" }}>
-            📖 Download the book (PDF)
+            📖 Home PDF
           </a>
         )}
         {project.storyboard.length > 0 && (
@@ -506,14 +757,11 @@ function ProjectView({
         )}
         {project.cast.some((c) => c.locked) && <SeriesButton project={project} onSwitch={onProject} />}
       </div>
-
-      <div style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px solid #00000012", opacity: 0.6 }}>
-        <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>Coming next:</p>
-        <p style={{ fontSize: "0.8rem", margin: 0 }}>
-          more <strong>public-domain classics</strong> in the template gallery · richer occasion templates.
-        </p>
-      </div>
-    </>
+      <p style={{ fontSize: "0.78rem", opacity: 0.65, marginTop: "0.8rem" }}>
+        Ordering a printed copy runs through the Lulu integration once credentials are configured (see{" "}
+        <code>.env.example</code>) — quotes and sandbox orders via <code>POST /api/projects/{"{id}"}/order</code>.
+      </p>
+    </section>
   );
 }
 
@@ -748,11 +996,21 @@ function SettingsSection({ project, onProject }: { project: Project; onProject: 
 
 /* ---------------- Storyboard: beats + page art ---------------- */
 
-function StoryboardSection({ project, onProject }: { project: Project; onProject: (p: Project) => void }) {
+function StoryboardSection({
+  project,
+  onProject,
+  fixBeatId,
+  fixInstruction,
+  onFixChange,
+}: {
+  project: Project;
+  onProject: (p: Project) => void;
+  fixBeatId: string | null;
+  fixInstruction: string;
+  onFixChange: (beatId: string | null, instruction: string) => void;
+}) {
   const [activeBeatId, setActiveBeatId] = useState<string | null>(null);
   const [editBeatId, setEditBeatId] = useState<string | null>(null);
-  const [fixBeatId, setFixBeatId] = useState<string | null>(null);
-  const [fixInstruction, setFixInstruction] = useState("");
   const activeBeat = project.storyboard.find((b) => b.id === activeBeatId) ?? null;
   const fixBeat = project.storyboard.find((b) => b.id === fixBeatId) ?? null;
   const castById = new Map(project.cast.map((c) => [c.id, c]));
@@ -836,13 +1094,7 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
                   </button>
                 )}
                 {beat.art && (
-                  <button
-                    onClick={() => {
-                      setFixInstruction("");
-                      setFixBeatId(beat.id);
-                    }}
-                    style={btnSmall(true)}
-                  >
+                  <button onClick={() => onFixChange(beat.id, "")} style={btnSmall(true)}>
                     ✏️ Point to fix
                   </button>
                 )}
@@ -882,20 +1134,9 @@ function StoryboardSection({ project, onProject }: { project: Project; onProject
           lockPath={`/api/projects/${project.id}/beats/${fixBeat.id}/lock`}
           initialInstruction={fixInstruction}
           onProject={onProject}
-          onDone={() => setFixBeatId(null)}
+          onDone={() => onFixChange(null, "")}
         />
       )}
-
-      <ContinuityPanel
-        project={project}
-        onFix={(page, instruction) => {
-          const beat = project.storyboard[page - 1];
-          if (beat?.art) {
-            setFixInstruction(instruction);
-            setFixBeatId(beat.id);
-          }
-        }}
-      />
     </section>
   );
 }

@@ -28,7 +28,28 @@ export async function PATCH(req: Request, { params }: Params) {
   } catch {
     return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
   }
-  const b = body as { title?: unknown; styleId?: unknown };
+  const b = body as { title?: unknown; styleId?: unknown; board?: unknown };
+
+  // Board layout: presentational positions only — validated shape, no text.
+  if (b.board !== undefined) {
+    const positions = (b.board as { positions?: unknown })?.positions;
+    if (typeof positions !== "object" || positions === null) {
+      return NextResponse.json({ error: "board.positions must be an object" }, { status: 400 });
+    }
+    const clean: Record<string, { x: number; y: number }> = {};
+    const known = new Set([
+      ...project.storyboard.map((s) => s.id),
+      ...project.cast.map((c) => c.id),
+      ...project.environments.map((e) => e.id),
+    ]);
+    for (const [key, val] of Object.entries(positions as Record<string, unknown>)) {
+      if (!known.has(key)) continue;
+      const p = val as { x?: unknown; y?: unknown };
+      if (typeof p?.x !== "number" || typeof p?.y !== "number" || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+      clean[key] = { x: Math.round(p.x), y: Math.round(p.y) };
+    }
+    project.board = { positions: clean };
+  }
 
   if (typeof b.title === "string") {
     const title = b.title.replace(/\s+/g, " ").trim();

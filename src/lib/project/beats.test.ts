@@ -70,3 +70,23 @@ test("environmentId: known passes, unknown fails, empty means none", () => {
   const bad = validateBeatInput({ sceneDescription: "ok", text: "", castIds: [], environmentId: "nowhere" }, project);
   assert.ok(!bad.ok);
 });
+
+test("reorderStoryboard: valid permutation reorders; bad inputs rejected", async () => {
+  const { reorderStoryboard } = await import("./beats");
+  const mk = () => ({
+    ...project,
+    storyboard: [
+      { id: "b1", sceneDescription: "one", text: "", castIds: [] },
+      { id: "b2", sceneDescription: "two", text: "", castIds: [] },
+      { id: "b3", sceneDescription: "three", text: "", castIds: [] },
+    ],
+  });
+  const p = mk();
+  assert.ok(reorderStoryboard(p, ["b3", "b1", "b2"]).ok);
+  assert.deepEqual(p.storyboard.map((b) => b.id), ["b3", "b1", "b2"]);
+
+  assert.ok(!reorderStoryboard(mk(), ["b1", "b2"]).ok, "missing id must fail");
+  assert.ok(!reorderStoryboard(mk(), ["b1", "b2", "b2"]).ok, "duplicate must fail");
+  assert.ok(!reorderStoryboard(mk(), ["b1", "b2", "bX"]).ok, "unknown id must fail");
+  assert.ok(!reorderStoryboard(mk(), "b1").ok, "non-array must fail");
+});
