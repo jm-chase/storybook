@@ -1,5 +1,5 @@
 import { generateStandaloneScene } from "./geminiProvider";
-import { getStyleSeed } from "./styleSeed";
+import { getStyleSeed, getElementSheet } from "./styleSeed";
 import { runGate, type GateOptions } from "./outputGate/runGate";
 import { defaultChecks } from "./outputGate/checks";
 import { COST_PER_IMAGE_USD } from "./cost";
@@ -20,11 +20,13 @@ export async function generateEnvironmentVariants(
   const maxAttempts = opts.maxAttempts ?? 6;
 
   const styleSeed = (await getStyleSeed(style)) ?? undefined;
+  const elementSheet = (await getElementSheet(style)) ?? undefined;
   const generate = async (): Promise<ImageCandidate> => {
     const img = await generateStandaloneScene({
       scenePrompt: `an establishing view of ${description}, empty of people and creatures`,
       style,
       styleSeed,
+      elementSheet,
     });
     return { base64: img.base64, mimeType: img.mimeType };
   };

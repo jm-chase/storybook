@@ -17,10 +17,10 @@ const SEED_DIR = () => path.join(process.cwd(), "assets", "styleSeeds");
 
 const cache = new Map<string, StyleSeed | null>();
 
-export async function getStyleSeed(style: HouseStyle): Promise<StyleSeed | null> {
-  const file = style.seedRefs[0];
+async function loadSeed(styleId: string, file: string | undefined): Promise<StyleSeed | null> {
   if (!file) return null;
-  const hit = cache.get(style.id);
+  const key = `${styleId}:${file}`;
+  const hit = cache.get(key);
   if (hit !== undefined) return hit;
   let seed: StyleSeed | null = null;
   try {
@@ -29,6 +29,17 @@ export async function getStyleSeed(style: HouseStyle): Promise<StyleSeed | null>
   } catch {
     seed = null;
   }
-  cache.set(style.id, seed);
+  cache.set(key, seed);
   return seed;
+}
+
+/** The style plate (seedRefs[0]) — palette/linework/texture reference. */
+export async function getStyleSeed(style: HouseStyle): Promise<StyleSeed | null> {
+  return loadSeed(style.id, style.seedRefs[0]);
+}
+
+/** The element-vocabulary sheet (seedRefs[1]) — how this style draws sky,
+ * clouds, sun, trees, grass, bushes, flowers, rocks, and water. */
+export async function getElementSheet(style: HouseStyle): Promise<StyleSeed | null> {
+  return loadSeed(style.id, style.seedRefs[1]);
 }

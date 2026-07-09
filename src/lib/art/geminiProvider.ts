@@ -54,6 +54,11 @@ const STYLE_SEED_LABEL =
 const SETTING_LABEL =
   "the SETTING — set the scene in this exact location, keeping its architecture, materials, colours, and landscape consistent";
 
+const ELEMENT_VOCAB_LABEL =
+  "the ELEMENT VOCABULARY for this art style — wherever the scene includes sky, clouds, sun, trees, grass, " +
+  "bushes, flowers, rocks, or water, draw them in exactly the manner shown here, adapted to the scene's " +
+  "lighting and composition; do NOT copy this sheet's layout or plain background";
+
 // Pages with text get a typeset caption panel overlaid on the lower part of
 // the art (bookPdf) — ask the model to keep that region visually quiet.
 // Wording matters: an early "keep the bottom uncluttered" draft made the model
@@ -170,11 +175,13 @@ export async function generateStandaloneScene(args: {
   style: HouseStyle;
   environment?: EnvironmentRef;
   styleSeed?: StyleSeedRef;
+  elementSheet?: StyleSeedRef;
   captionSpace?: boolean;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
   const refs: LabeledRef[] = [];
   if (args.styleSeed) refs.push({ label: STYLE_SEED_LABEL, ...args.styleSeed });
+  if (args.elementSheet) refs.push({ label: ELEMENT_VOCAB_LABEL, ...args.elementSheet });
   if (args.environment) refs.push({ label: SETTING_LABEL, base64: args.environment.base64, mimeType: args.environment.mimeType });
   const { labels, parts } = labeled(refs);
   const text =
@@ -211,12 +218,14 @@ export async function generateMultiCharacterScene(args: {
   style: HouseStyle;
   environment?: EnvironmentRef;
   styleSeed?: StyleSeedRef;
+  elementSheet?: StyleSeedRef;
   captionSpace?: boolean;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
-  const { characters, scenePrompt, style, environment, styleSeed } = args;
+  const { characters, scenePrompt, style, environment, styleSeed, elementSheet } = args;
   const refs: LabeledRef[] = [];
   if (styleSeed) refs.push({ label: STYLE_SEED_LABEL, ...styleSeed });
+  if (elementSheet) refs.push({ label: ELEMENT_VOCAB_LABEL, ...elementSheet });
   for (const c of characters) refs.push({ label: `${c.label} (${c.description})`, base64: c.base64, mimeType: c.mimeType });
   if (environment) refs.push({ label: SETTING_LABEL, base64: environment.base64, mimeType: environment.mimeType });
   const { labels, parts } = labeled(refs);

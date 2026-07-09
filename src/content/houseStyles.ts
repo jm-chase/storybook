@@ -1,9 +1,10 @@
-import type { HouseStyle } from "../lib/art/types";
+﻿import type { HouseStyle } from "../lib/art/types";
 
 // Our own house styles (D-016). Each `promptFragment` is OUR attribute
-// vocabulary — never a third-party name. `seedRefs` names a curated style
-// plate under assets/styleSeeds/, passed as a style-only reference on every
-// generation (D-020 refinement 1). Names/blurbs are tunable.
+// vocabulary — never a third-party name. `seedRefs` names curated plates under
+// assets/styleSeeds/: [0] the style plate (D-020 refinement 1), [1] the
+// element-vocabulary sheet (how this style draws sky/clouds/sun/trees/grass/
+// water — James, 2026-07-09). Both ride every generation as style-only refs.
 
 export const HOUSE_STYLES: HouseStyle[] = [
   {
@@ -13,7 +14,7 @@ export const HOUSE_STYLES: HouseStyle[] = [
     promptFragment:
       "soft hand-painted watercolor, gentle rounded characters, luminous natural light, lush atmospheric backgrounds, warm and tender mood",
     swatches: ["#aac6c2", "#e7cfa6", "#cf9f7a", "#7d9a8f"],
-    seedRefs: ["painted-wonder.jpg"],
+    seedRefs: ["painted-wonder.jpg", "painted-wonder-elements.jpg"],
   },
   {
     id: "storybook-ink",
@@ -22,7 +23,7 @@ export const HOUSE_STYLES: HouseStyle[] = [
     promptFragment:
       "textured crosshatch ink linework, earthy muted palette, expressive characterful creatures, hand-drawn warmth, a slightly wild energy",
     swatches: ["#6f5b43", "#9c8a5e", "#3f4a3a", "#c0a87f"],
-    seedRefs: ["storybook-ink.jpg"],
+    seedRefs: ["storybook-ink.jpg", "storybook-ink-elements.jpg"],
   },
   {
     id: "torn-and-bright",
@@ -31,7 +32,7 @@ export const HOUSE_STYLES: HouseStyle[] = [
     promptFragment:
       "torn tissue-paper collage texture, bold saturated color blocks, simple iconic shapes, a tactile handmade feel",
     swatches: ["#e4572e", "#f3a712", "#2a9d8f", "#3d348b"],
-    seedRefs: ["torn-and-bright.jpg"],
+    seedRefs: ["torn-and-bright.jpg", "torn-and-bright-elements.jpg"],
   },
   {
     id: "bright-and-round",
@@ -40,7 +41,7 @@ export const HOUSE_STYLES: HouseStyle[] = [
     promptFragment:
       "clean flat vector shapes, big expressive eyes, cheerful saturated palette, friendly rounded forms, a modern picture-book look",
     swatches: ["#ff8c42", "#ffd166", "#06d6a0", "#118ab2"],
-    seedRefs: ["bright-and-round.jpg"],
+    seedRefs: ["bright-and-round.jpg", "bright-and-round-elements.jpg"],
   },
   {
     id: "wobbly-world",
@@ -49,7 +50,7 @@ export const HOUSE_STYLES: HouseStyle[] = [
     promptFragment:
       "loose wobbly hand-drawn line, playful impossible shapes, a punchy limited palette, rhythmic and comedic energy",
     swatches: ["#ef476f", "#ffd166", "#06d6a0", "#073b4c"],
-    seedRefs: ["wobbly-world.jpg"],
+    seedRefs: ["wobbly-world.jpg", "wobbly-world-elements.jpg"],
   },
 ];
 
