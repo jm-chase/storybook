@@ -17,6 +17,14 @@ import type { CastRole } from "../lib/project/types";
 // - The Wonderful Wizard of Oz: Baum d. 1919, published 1900 — PD worldwide.
 //   BOOK elements only: SILVER shoes, no MGM film trade dress (ruby slippers,
 //   film character likenesses are NOT public domain).
+// - From the Earth to the Moon: Verne d. 1905, published 1865 — PD worldwide
+//   (premise retold; our own crew).
+// - The Snow Queen: Andersen d. 1875, published 1844 — PD worldwide. Our own
+//   visual language — NO Disney Frozen trade dress (no Elsa likeness).
+// - Jack and the Beanstalk: traditional; Jacobs' telling 1890 — PD worldwide.
+// - Aladdin (Arabian Nights): traditional — PD worldwide. Our own visual
+//   language — the lamp spirit is an emerald smoke spirit, NOT the Disney
+//   blue genie.
 
 export interface TemplateCastMember {
   role: CastRole;
@@ -40,9 +48,19 @@ export interface TemplateBeat {
   environmentName?: string;
 }
 
+export type TemplateGenre = "occasions" | "classic-tales" | "fantasy" | "sci-fi";
+
+export const GENRE_META: Record<TemplateGenre, { label: string; emoji: string }> = {
+  occasions: { label: "Occasions & milestones", emoji: "🎈" },
+  "classic-tales": { label: "Classic tales", emoji: "📜" },
+  fantasy: { label: "Fantasy & wonder", emoji: "🏰" },
+  "sci-fi": { label: "Space & adventure", emoji: "🚀" },
+};
+
 export interface BookTemplate {
   id: string;
   kind: "occasion" | "classic";
+  genre: TemplateGenre;
   title: string; // {hero} allowed
   blurb: string;
   defaultStyleId: string;
@@ -57,6 +75,7 @@ export const BOOK_TEMPLATES: BookTemplate[] = [
   {
     id: "big-new-sibling",
     kind: "occasion",
+    genre: "occasions",
     title: "{hero} and the Brand-New Baby",
     blurb: "For the big brother or sister to be — being big is a kind of magic.",
     defaultStyleId: "painted-wonder",
@@ -92,6 +111,7 @@ export const BOOK_TEMPLATES: BookTemplate[] = [
   {
     id: "first-day-of-school",
     kind: "occasion",
+    genre: "occasions",
     title: "{hero}'s First Big Day",
     blurb: "The first-day-of-school story — brave is doing it anyway.",
     defaultStyleId: "bright-and-round",
@@ -127,6 +147,7 @@ export const BOOK_TEMPLATES: BookTemplate[] = [
   {
     id: "down-the-rabbit-hole",
     kind: "classic",
+    genre: "fantasy",
     title: "{hero} in Wonderland",
     blurb: "Your child tumbles into the classic — alongside Alice herself. (Public domain, retold.)",
     defaultStyleId: "wobbly-world",
@@ -179,6 +200,7 @@ export const BOOK_TEMPLATES: BookTemplate[] = [
   {
     id: "tortoise-and-hare",
     kind: "classic",
+    genre: "classic-tales",
     title: "{hero} and the Great Race",
     blurb: "Aesop's slow-and-steady classic — with your child as the race judge. (Public domain, retold.)",
     defaultStyleId: "storybook-ink",
@@ -232,6 +254,7 @@ export const BOOK_TEMPLATES: BookTemplate[] = [
   {
     id: "goldilocks",
     kind: "classic",
+    genre: "classic-tales",
     title: "{hero} and the Three Bears",
     blurb: "Porridge, chairs, and beds — just right, with your child along. (Public domain, retold.)",
     defaultStyleId: "painted-wonder",
@@ -284,6 +307,7 @@ export const BOOK_TEMPLATES: BookTemplate[] = [
   {
     id: "three-little-pigs",
     kind: "classic",
+    genre: "classic-tales",
     title: "{hero} and the Three Little Pigs",
     blurb: "Straw, sticks, bricks — and one out-of-breath wolf. (Public domain, retold.)",
     defaultStyleId: "wobbly-world",
@@ -379,6 +403,7 @@ export const BOOK_TEMPLATES: BookTemplate[] = [
   {
     id: "road-to-oz",
     kind: "classic",
+    genre: "fantasy",
     title: "{hero} and the Road of Yellow Brick",
     blurb: "Brains, heart, courage — Baum's classic road, walked with your child. (Public domain, retold from the 1900 book.)",
     defaultStyleId: "torn-and-bright",
@@ -426,6 +451,314 @@ export const BOOK_TEMPLATES: BookTemplate[] = [
         sceneDescription: "the hero waves goodbye at the city gates as Dorothy's silver shoes sparkle, the yellow brick road stretching home behind them into the sunset",
         text: "Every road goes two ways, you know. One way is somewhere. The other way is home.",
         castNames: ["hero", "Dorothy"],
+      },
+    ],
+  },
+  {
+    id: "voyage-to-the-moon",
+    kind: "classic",
+    genre: "sci-fi",
+    title: "{hero} and the Voyage to the Moon",
+    blurb: "Verne's great cannon, a brass capsule, and the silver Moon. (Public domain premise, retold.)",
+    defaultStyleId: "torn-and-bright",
+    cast: [
+      {
+        role: "friend",
+        name: "Professor Perigee",
+        description:
+          "a kindly round inventor with a white walrus moustache, brass goggles pushed up on her forehead, and a long plum-coloured work coat full of pencils",
+      },
+      {
+        role: "sidekick",
+        name: "Comet",
+        description: "a small eager terrier dog with one black ear, wearing a little round glass space helmet",
+      },
+    ],
+    environments: [
+      {
+        name: "the moon-cannon workshop",
+        description:
+          "a cluttered warm workshop with a gleaming brass space capsule under construction, blueprints pinned to wooden walls, ladders, rivets, and a huge round window showing the evening sky",
+      },
+      {
+        name: "the silver moonfield",
+        description:
+          "a gentle silver-grey moonscape of soft rounded craters and sparkling dust under a deep starry black sky, the blue Earth glowing above the horizon",
+      },
+    ],
+    beats: [
+      {
+        sceneDescription:
+          "Professor Perigee slides down a ladder pointing excitedly at the gleaming brass capsule while the hero tightens a big bolt with a wrench and Comet chases a rolling rivet",
+        text: "The Professor had built a ship like a bullet of brass. “To the MOON,” she said, as if it were the corner shop.",
+        castNames: ["hero", "Professor Perigee", "Comet"],
+        environmentName: "the moon-cannon workshop",
+      },
+      {
+        sceneDescription:
+          "the hero, Professor Perigee, and Comet strapped snugly into padded seats inside the capsule, gripping the armrests, cheeks wobbling as everything shakes at launch",
+        text: "THREE. TWO. ONE. The whole sky said BOOM.",
+        castNames: ["hero", "Professor Perigee", "Comet"],
+      },
+      {
+        sceneDescription:
+          "inside the capsule the hero, Professor Perigee, and Comet float weightless mid-air, laughing, surrounded by drifting pencils, biscuits, and the Professor's goggles",
+        text: "Then everything floated. The pencils. The biscuits. Even Comet — paddling in the air like a swimmer.",
+        castNames: ["hero", "Professor Perigee", "Comet"],
+      },
+      {
+        sceneDescription:
+          "the hero takes an enormous slow-motion bounding leap across the silver moonfield, arms wide, while Comet bounces beside them leaving little puffs of moon dust and the Professor measures a crater",
+        text: "On the Moon, every step is a JUMP. {hero} jumped over a whole crater. Comet jumped over {hero}.",
+        castNames: ["hero", "Professor Perigee", "Comet"],
+        environmentName: "the silver moonfield",
+      },
+      {
+        sceneDescription:
+          "the hero, Professor Perigee, and Comet sit together on the rim of a soft crater gazing up at the glowing blue Earth in the black starry sky",
+        text: "They sat very still and looked up. Home was up there — small and blue and bright. “Everyone we love fits on that,” whispered {hero}.",
+        castNames: ["hero", "Professor Perigee", "Comet"],
+        environmentName: "the silver moonfield",
+      },
+      {
+        sceneDescription:
+          "back in the workshop the hero pins a drawing of the blue Earth to the wall while the Professor pours cocoa and Comet sleeps curled in an upturned space helmet",
+        text: "The best thing about the Moon, it turns out, is coming home to tell about it.",
+        castNames: ["hero", "Professor Perigee", "Comet"],
+        environmentName: "the moon-cannon workshop",
+      },
+    ],
+  },
+  {
+    id: "the-snow-queen",
+    kind: "classic",
+    genre: "fantasy",
+    title: "{hero} and the Snow Queen",
+    blurb: "Andersen's frozen journey — warmth wins. (Public domain, retold.)",
+    defaultStyleId: "painted-wonder",
+    cast: [
+      {
+        role: "friend",
+        name: "Gerda",
+        description:
+          "a determined rosy-cheeked girl bundled in a patched red woollen coat, thick mittens, and boots too big for her",
+      },
+      {
+        role: "adversary",
+        name: "the Snow Queen",
+        description:
+          "a tall elegant queen made of winter itself — long white hair like falling snow, a gown of frost lace, a thin crown of icicles, beautiful and cold but not cruel",
+      },
+    ],
+    environments: [
+      {
+        name: "the frozen forest",
+        description:
+          "a hushed snowy pine forest at dusk, deep blue shadows, snow heavy on the branches, a narrow winding path of footprints",
+      },
+      {
+        name: "the ice palace",
+        description:
+          "a vast glittering palace hall carved from pale blue ice, tall frosted pillars, a floor like a mirror, snowflakes hanging motionless in the air",
+      },
+    ],
+    beats: [
+      {
+        sceneDescription:
+          "Gerda marches ahead through deep snow pulling the hero by the hand, both leaning into the wind, their breath making little clouds",
+        text: "Gerda's best friend had been taken to the palace of winter. “Will you come with me?” she asked. {hero} was already putting on mittens.",
+        castNames: ["hero", "Gerda"],
+        environmentName: "the frozen forest",
+      },
+      {
+        sceneDescription:
+          "the hero and Gerda crouch behind a snow-laden pine watching the Snow Queen glide past above the treetops on a swirl of snowflakes, her frost gown streaming",
+        text: "The Snow Queen swept over the trees like a white wind. She wasn't wicked, they say. Just very, very cold.",
+        castNames: ["hero", "Gerda", "the Snow Queen"],
+        environmentName: "the frozen forest",
+      },
+      {
+        sceneDescription:
+          "the hero and Gerda step carefully across the mirror floor of the vast ice hall, holding each other's arms, their warm breath glowing gold in the blue light",
+        text: "The palace was beautiful the way January is beautiful. {hero} held Gerda's hand tighter. Warm things are braver together.",
+        castNames: ["hero", "Gerda"],
+        environmentName: "the ice palace",
+      },
+      {
+        sceneDescription:
+          "the hero offers a steaming little thermos cup up to the Snow Queen, who kneels down on the ice to look at it in wonder, one frost-white hand reaching out",
+        text: "“Have you ever tried cocoa?” asked {hero}. The Queen blinked. Snow queens are almost never offered anything warm.",
+        castNames: ["hero", "Gerda", "the Snow Queen"],
+        environmentName: "the ice palace",
+      },
+      {
+        sceneDescription:
+          "the Snow Queen smiles faintly as tiny green shoots and one small flower push up through the melting mirror floor around the hero and Gerda",
+        text: "One warm sip. One small smile. And somewhere under all that ice, spring cleared its throat.",
+        castNames: ["hero", "Gerda", "the Snow Queen"],
+        environmentName: "the ice palace",
+      },
+      {
+        sceneDescription:
+          "the hero and Gerda walk home through the forest at sunrise as the snow turns pink and gold, waving back at a distant white figure among the trees",
+        text: "Winter still comes every year, of course. But now it waves first.",
+        castNames: ["hero", "Gerda"],
+        environmentName: "the frozen forest",
+      },
+    ],
+  },
+  {
+    id: "jack-and-the-beanstalk",
+    kind: "classic",
+    genre: "fantasy",
+    title: "{hero}, Jack, and the Beanstalk",
+    blurb: "Magic beans, a sky-high climb, and a giant who mostly needed a friend. (Public domain, retold.)",
+    defaultStyleId: "wobbly-world",
+    cast: [
+      {
+        role: "friend",
+        name: "Jack",
+        description:
+          "a barefoot grinning farm boy with a mop of straw-coloured hair, rolled-up trousers, and a small brown pouch on his belt",
+      },
+      {
+        role: "adversary",
+        name: "the Giant",
+        description:
+          "an enormous shaggy giant with a tangled brown beard, a patched moss-green jumper, huge gentle hands, and tired lonely eyes",
+      },
+    ],
+    environments: [
+      {
+        name: "the bean garden",
+        description:
+          "a tiny crooked farmhouse garden with a vegetable patch, a leaning fence, and one colossal green beanstalk twisting up through the clouds",
+      },
+      {
+        name: "the cloud castle kitchen",
+        description:
+          "a giant's kitchen above the clouds — a table as tall as a house, an enormous kettle, one giant chair, and soft cloud drifting in through the window",
+      },
+    ],
+    beats: [
+      {
+        sceneDescription:
+          "Jack plants a shining bean while the hero waters it with a small watering can, both kneeling in the vegetable patch in morning light",
+        text: "“Magic beans,” said Jack. “Probably.” {hero} watered them anyway. You never know.",
+        castNames: ["hero", "Jack"],
+        environmentName: "the bean garden",
+      },
+      {
+        sceneDescription:
+          "the hero and Jack cling to the huge twisting beanstalk high above the tiny farmhouse, climbing hand over hand through a cloud",
+        text: "By morning the beanstalk had gone UP. So up they went too — hand over hand, all the way through the clouds.",
+        castNames: ["hero", "Jack"],
+        environmentName: "the bean garden",
+      },
+      {
+        sceneDescription:
+          "the hero and Jack peek over the edge of a giant table as the enormous giant sits slumped with his chin in his hands, sighing at an empty giant teacup",
+        text: "FEE. FI. FO… sigh. The giant didn't stomp. He just looked at his empty cup, all alone at his great big table.",
+        castNames: ["hero", "Jack", "the Giant"],
+        environmentName: "the cloud castle kitchen",
+      },
+      {
+        sceneDescription:
+          "the hero and Jack strain together to roll a giant sugar lump across the table toward the giant's teacup while the giant watches wide-eyed",
+        text: "It takes two children to push one giant sugar lump. The giant watched, very still, the way you watch a wonderful thing.",
+        castNames: ["hero", "Jack", "the Giant"],
+        environmentName: "the cloud castle kitchen",
+      },
+      {
+        sceneDescription:
+          "the giant carefully pours tea from an enormous kettle into a thimble-sized cup for the hero, his tongue between his teeth in concentration, Jack balancing on the table edge clapping",
+        text: "“Tea?” boomed the giant, very gently, pouring {hero} a cup the size of a thimble. It was the best tea either of them ever had.",
+        castNames: ["hero", "Jack", "the Giant"],
+        environmentName: "the cloud castle kitchen",
+      },
+      {
+        sceneDescription:
+          "the giant lowers the hero and Jack down through the clouds in his cupped hands toward the little garden, the beanstalk winding beside them in sunset light",
+        text: "They didn't chop the beanstalk down. Why would you? That's how you visit a friend.",
+        castNames: ["hero", "Jack", "the Giant"],
+        environmentName: "the bean garden",
+      },
+    ],
+  },
+  {
+    id: "aladdin-wonderful-lamp",
+    kind: "classic",
+    genre: "fantasy",
+    title: "{hero} and the Wonderful Lamp",
+    blurb: "An old lamp, an emerald spirit, and one very careful wish. (Public domain, retold.)",
+    defaultStyleId: "torn-and-bright",
+    cast: [
+      {
+        role: "friend",
+        name: "Aladdin",
+        description:
+          "a quick bright-eyed boy in a sand-coloured tunic with a deep red sash and worn curl-toed slippers",
+      },
+      {
+        role: "sidekick",
+        name: "the Lamp Spirit",
+        description:
+          "a gentle towering spirit of swirling emerald-green smoke with golden bangles on its wrists, no legs — its lower half trails into the lamp — and calm amber eyes",
+      },
+    ],
+    environments: [
+      {
+        name: "the glittering cave garden",
+        description:
+          "an underground garden of jewel-fruit trees glinting ruby and sapphire, warm lantern light on golden sand, a stone stair spiralling up into darkness",
+      },
+      {
+        name: "the rooftop terrace",
+        description:
+          "a flat clay rooftop at dusk with patterned cushions, a small oil lamp on a low table, strings of tiny lanterns, and a warm city of domes and minarets below",
+      },
+    ],
+    beats: [
+      {
+        sceneDescription:
+          "Aladdin reaches back to pull the hero down the last stone steps into the glittering cave garden, both gaping at trees hung with jewel-fruit",
+        text: "Down and down and DOWN — into a garden where the fruit was made of jewels. “Touch nothing,” whispered Aladdin, “except the lamp.”",
+        castNames: ["hero", "Aladdin"],
+        environmentName: "the glittering cave garden",
+      },
+      {
+        sceneDescription:
+          "the hero picks up a small dented brass oil lamp from a stone pedestal and rubs dust off it with a sleeve while Aladdin holds up a lantern",
+        text: "The lamp was old and dented and not very shiny. {hero} gave it a polish, just to be kind.",
+        castNames: ["hero", "Aladdin"],
+        environmentName: "the glittering cave garden",
+      },
+      {
+        sceneDescription:
+          "a towering gentle spirit of emerald smoke swirls up out of the lamp above the hero and Aladdin, golden bangles glinting, the whole cave lit green",
+        text: "WHOOSH. Out of the spout poured a spirit as tall as a tower, green as a summer leaf. “One wish,” it rumbled, “chosen well, is worth a hundred.”",
+        castNames: ["hero", "Aladdin", "the Lamp Spirit"],
+        environmentName: "the glittering cave garden",
+      },
+      {
+        sceneDescription:
+          "the hero and Aladdin sit cross-legged arguing happily over a scrap of paper covered in crossed-out wishes while the Lamp Spirit waits with folded arms, amused",
+        text: "A mountain of sweets? Crossed out. A hundred puppies? (Nearly kept.) Wishing is harder than it looks.",
+        castNames: ["hero", "Aladdin", "the Lamp Spirit"],
+        environmentName: "the glittering cave garden",
+      },
+      {
+        sceneDescription:
+          "the Lamp Spirit carries the hero and Aladdin up out of the cave on a rising swirl of emerald smoke toward the evening sky",
+        text: "“We wish to go home,” said {hero}, “all of us together.” The spirit smiled like a lamp being lit.",
+        castNames: ["hero", "Aladdin", "the Lamp Spirit"],
+      },
+      {
+        sceneDescription:
+          "the hero, Aladdin, and the Lamp Spirit share flatbread and tea on the rooftop terrace under strings of lanterns, the lamp sitting on the table between them like a guest",
+        text: "Home, with friends, with bread and tea. The lamp sat on the table — and nobody needed to wish for anything at all.",
+        castNames: ["hero", "Aladdin", "the Lamp Spirit"],
+        environmentName: "the rooftop terrace",
       },
     ],
   },

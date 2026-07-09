@@ -5,7 +5,7 @@ import { HOUSE_STYLES, HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
 import { MAX_DESCRIPTION } from "@/lib/art/brief";
 import { CAST_ROLES, type CastRole, type Project, type ProjectSummary, type StoryBeat } from "@/lib/project/types";
 import { MAX_SCENE_DESCRIPTION, MAX_PAGE_TEXT } from "@/lib/project/beats";
-import { BOOK_TEMPLATES } from "@/content/bookTemplates";
+import { BOOK_TEMPLATES, GENRE_META } from "@/content/bookTemplates";
 import { CHARACTER_CHIPS, CHARACTER_HINT, SETTING_CHIPS, sceneChips } from "@/content/suggestions";
 
 // The cast studio (D-022/D-023): a persisted book PROJECT with a locked CAST.
@@ -314,8 +314,15 @@ function TemplateSection({ onCreated }: { onCreated: (p: Project) => void }) {
   return (
     <section style={{ marginTop: "1.5rem" }}>
       <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>Start from a story (you just add your child)</p>
+      {(Object.keys(GENRE_META) as (keyof typeof GENRE_META)[])
+        .filter((g) => BOOK_TEMPLATES.some((t) => t.genre === g))
+        .map((genre) => (
+          <div key={genre} style={{ marginBottom: "0.9rem" }}>
+            <p style={{ fontSize: "0.78rem", fontWeight: 800, opacity: 0.7, margin: "0.6rem 0 0.35rem" }}>
+              {GENRE_META[genre].emoji} {GENRE_META[genre].label}
+            </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "0.6rem" }}>
-        {BOOK_TEMPLATES.map((t) => (
+        {BOOK_TEMPLATES.filter((t) => t.genre === genre).map((t) => (
           <div key={t.id} style={card(t.id === templateId)} onClick={() => setTemplateId(t.id)}>
             <div style={{ fontSize: "0.7rem", fontWeight: 700, opacity: 0.55, textTransform: "uppercase" }}>
               {t.kind === "classic" ? "classic · public domain" : "occasion"}
@@ -328,6 +335,8 @@ function TemplateSection({ onCreated }: { onCreated: (p: Project) => void }) {
           </div>
         ))}
       </div>
+          </div>
+        ))}
       {chosen && (
         <div style={{ ...card(true), cursor: "default", maxWidth: 560, marginTop: "0.6rem" }}>
           <label style={{ display: "block", marginBottom: "0.5rem" }}>
