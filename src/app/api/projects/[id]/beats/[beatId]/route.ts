@@ -27,7 +27,25 @@ export async function PATCH(req: Request, { params }: Params) {
     castIds?: unknown;
     environmentId?: unknown;
     production?: unknown;
+    colorScript?: unknown;
   };
+
+  // Color script: feeds the ART prompt on the next generation; editing it does
+  // NOT clear locked art (deliberate — see types.ts).
+  if (b.colorScript !== undefined) {
+    const phrase = typeof b.colorScript === "string" ? b.colorScript.replace(/\s+/g, " ").trim().slice(0, 160) : "";
+    if (phrase) {
+      const screenedColor = await screenFields({ colorScript: phrase });
+      if (!screenedColor.ok) return NextResponse.json({ error: screenedColor.message }, { status: screenedColor.status });
+      beat.colorScript = phrase;
+    } else {
+      delete beat.colorScript;
+    }
+    if (b.sceneDescription === undefined && b.text === undefined && b.castIds === undefined && b.environmentId === undefined && b.production === undefined) {
+      const saved = await saveProject(project);
+      return NextResponse.json({ project: saved });
+    }
+  }
 
   // Production metadata (camera/shot/timing/dialogue): planning notes only —
   // never sent to the image model, never typeset. Editing them keeps the art.

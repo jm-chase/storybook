@@ -41,6 +41,9 @@ const INSTRUCTION =
   `with a very short note. SECOND, report structural problems a good editor would flag: pages where nothing ` +
   `moves forward, abrupt jumps that would confuse a small child, a missing or rushed resolution, repeated beats, ` +
   `a character who matters and then vanishes, or page text that fights the picture description. ` +
+  `ALSO check the book's breathing (the Japanese idea of "ma"): relentless event-event-event pacing with no ` +
+  `quiet beat — no page where the story simply pauses to feel — is a flaw in a picture book; when every page is ` +
+  `busy, recommend where a still, quiet, or even wordless page would let the emotion land. ` +
   `Do NOT flag good simplicity — short books are meant to be simple; report only real problems. ` +
   `For each issue give a concrete, kind suggestion a parent could act on (reorder pages, add a page, trim text). ` +
   `Respond ONLY with JSON: {"arcStages": [{"page": int, "stage": string, "note": string}], ` +

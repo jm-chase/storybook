@@ -71,6 +71,8 @@ export async function POST(_req: Request, { params }: Params) {
       characters,
       environment,
       captionSpace: Boolean(beat.text),
+      colorScript: beat.colorScript,
+      camera: beat.production?.camera,
       opts: { onEvent: emitProgress },
     });
     if (result.variants.length === 0) {

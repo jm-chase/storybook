@@ -534,7 +534,7 @@ function ProjectView({
         consistent on every page.
       </p>
 
-      {section === "overview" && <OverviewSection project={project} onSection={setSection} />}
+      {section === "overview" && <OverviewSection project={project} onSection={setSection} onProject={onProject} />}
 
       {section === "cast" && (
       <>
@@ -788,8 +788,41 @@ function navItemStyle(active: boolean): React.CSSProperties {
   };
 }
 
-/** Overview: at-a-glance progress + readiness (the "analysis" home). */
-function OverviewSection({ project, onSection }: { project: Project; onSection: (s: SectionId) => void }) {
+/** Overview: at-a-glance progress + readiness (the "analysis" home) + the
+ * image board — pictures before story (CRAFT_BAR G6). */
+function OverviewSection({
+  project,
+  onSection,
+  onProject,
+}: {
+  project: Project;
+  onSection: (s: SectionId) => void;
+  onProject: (p: Project) => void;
+}) {
+  const [idea, setIdea] = useState("");
+  const [ideaBusy, setIdeaBusy] = useState(false);
+  const [ideaError, setIdeaError] = useState("");
+
+  async function imagine() {
+    setIdeaBusy(true);
+    setIdeaError("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}/imageboard`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ idea }),
+      });
+      const d = await res.json();
+      if (!res.ok) setIdeaError(d.fields?.idea?.message ?? d.error ?? "failed");
+      else {
+        onProject(d.project);
+        setIdea("");
+      }
+    } finally {
+      setIdeaBusy(false);
+    }
+  }
+
   const castLocked = project.cast.filter((c) => c.locked).length;
   const envLocked = project.environments.filter((e) => e.locked).length;
   const pagesArt = project.storyboard.filter((b) => b.art).length;
@@ -828,6 +861,38 @@ function OverviewSection({ project, onSection }: { project: Project; onSection: 
           </div>
         </div>
       </div>
+      <div style={{ marginTop: "1.2rem" }}>
+        <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 0.35rem" }}>🎨 Image board — pictures before story</p>
+        <p style={{ fontSize: "0.75rem", opacity: 0.65, margin: "0 0 0.5rem" }}>
+          Loose concept images in the book&apos;s style — mood and place, before anything commits. They live on the
+          infinite board as inspiration.
+        </p>
+        <div style={{ display: "flex", gap: 8, maxWidth: 620 }}>
+          <input
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            placeholder="a shed full of starlight at the bottom of a summer garden, dusk"
+            style={{ ...inputStyle(!!ideaError), marginTop: 0 }}
+          />
+          <button onClick={imagine} disabled={ideaBusy || idea.trim().length === 0} style={{ ...btn(true), flexShrink: 0 }}>
+            {ideaBusy ? "🎨 Imagining…" : "🎨 Imagine"}
+          </button>
+        </div>
+        {ideaError && <Err>{ideaError}</Err>}
+        {(project.imageboard ?? []).length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            {(project.imageboard ?? []).map((im) => (
+              <img
+                key={im.file}
+                src={`/api/projects/${project.id}/images/${im.file}`}
+                alt="concept"
+                style={{ width: 132, height: 132, objectFit: "cover", borderRadius: 10, boxShadow: "var(--shadow-soft)" }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
       <p style={{ fontSize: "0.8rem", opacity: 0.7, marginTop: "1rem" }}>
         Work through the sections on the left — or arrange the whole book spatially on the{" "}
         <a href={`/board/${project.id}`}>infinite board</a>. Run the editor passes under <strong>Reviews &amp; insights</strong>{" "}
@@ -849,7 +914,88 @@ function ReviewsSection({ project, onFix }: { project: Project; onFix: (page: nu
         )}
       </div>
       <NarrativePanel project={project} />
+      <DirectorPanel project={project} onFix={onFix} />
     </section>
+  );
+}
+
+/** The director's craft review (CRAFT_BAR G5): scores + retakes. */
+function DirectorPanel({ project, onFix }: { project: Project; onFix: (page: number, instruction: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [report, setReport] = useState<{
+    overall: number;
+    pages: { page: number; emotionalTruth: number; acting: number; composition: number; wonder: number; note: string }[];
+    retakes: { page: number; what: string; fix: { kind: string; instruction: string } }[];
+  } | null>(null);
+  const hasArt = project.storyboard.some((b) => b.art);
+
+  async function run() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}/director`, { method: "POST" });
+      const d = await res.json();
+      if (!res.ok) setError(d.error ?? "review failed");
+      else setReport(d.report);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 0.4rem" }}>The director&apos;s review</p>
+      <div style={{ padding: "0.8rem", borderRadius: 12, background: "#00000006" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+          <button onClick={run} disabled={busy || !hasArt} style={btn(false)}>
+            {busy ? "🎬 Reviewing every page…" : "🎬 Director's review"}
+          </button>
+          <span style={{ fontSize: "0.72rem", opacity: 0.6 }}>
+            The exacting eye: emotional truth, acting, composition, wonder — scored per page, with retakes.
+          </span>
+        </div>
+        {error && <Err>{error}</Err>}
+        {report && (
+          <div style={{ marginTop: "0.6rem", fontSize: "0.8rem" }}>
+            <div style={{ fontWeight: 800, fontSize: "1rem" }}>
+              Overall: {report.overall} / 5
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+              {report.pages.map((p) => (
+                <div key={p.page} style={{ background: "var(--surface)", borderRadius: 8, padding: "0.45rem 0.6rem" }}>
+                  <strong>p{p.page}</strong>{" "}
+                  <span style={{ opacity: 0.75 }}>
+                    truth {p.emotionalTruth} · acting {p.acting} · comp {p.composition} · wonder {p.wonder}
+                  </span>
+                  <div style={{ opacity: 0.7, marginTop: 2 }}>{p.note}</div>
+                </div>
+              ))}
+            </div>
+            {report.retakes.length === 0 ? (
+              <p style={{ color: "#2a9d8f", fontWeight: 700 }}>✅ No retakes — the director signs off.</p>
+            ) : (
+              report.retakes.map((r, i) => (
+                <div key={i} style={{ background: "var(--surface)", borderRadius: 8, padding: "0.55rem 0.7rem", marginTop: 8 }}>
+                  <div>
+                    <strong>RETAKE p{r.page}:</strong> {r.what}
+                  </div>
+                  <div style={{ marginTop: 4 }}>
+                    {r.fix.kind === "refine" && r.fix.instruction && project.storyboard[r.page - 1]?.art ? (
+                      <button onClick={() => onFix(r.page, r.fix.instruction)} style={btnSmall(true)}>
+                        ✏️ Fix page {r.page}: “{r.fix.instruction.slice(0, 60)}{r.fix.instruction.length > 60 ? "…" : ""}”
+                      </button>
+                    ) : (
+                      <span style={{ opacity: 0.65 }}>Suggested: regenerate page {r.page} — {r.fix.instruction}</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -916,10 +1062,69 @@ function NarrativePanel({ project }: { project: Project }) {
   );
 }
 
-/** Print & export: every output the book can become. */
+/** Print & export: every output the book can become — behind the pre-flight
+ * editorial checklist (CRAFT_BAR G7). */
 function PrintSection({ project, onProject }: { project: Project; onProject: (p: Project) => void }) {
+  const [status, setStatus] = useState<{
+    pagesLocked: boolean;
+    continuity: { ran: boolean; issues?: number; fresh?: boolean };
+    narrative: { ran: boolean; issues?: number; fresh?: boolean };
+    director: { ran: boolean; issues?: number; overall?: number; fresh?: boolean };
+  } | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/projects/${project.id}/reviews/status`)
+      .then((r) => r.json())
+      .then((d) => setStatus(d.pagesLocked !== undefined ? d : null))
+      .catch(() => {});
+  }, [project.id, project.updatedAt]);
+
+  const check = (ok: boolean, warn: boolean, label: string) => (
+    <span
+      style={{
+        fontSize: "0.75rem",
+        fontWeight: 700,
+        padding: "4px 10px",
+        borderRadius: 8,
+        background: ok ? "#2a9d8f22" : warn ? "#f3a71222" : "#00000008",
+        color: ok ? "#1d7a70" : warn ? "#8a6d3b" : "#666",
+      }}
+    >
+      {ok ? "✓" : warn ? "⚠" : "○"} {label}
+    </span>
+  );
+
   return (
     <section style={{ margin: "1.25rem 0" }}>
+      {status && (
+        <div style={{ marginBottom: "0.9rem" }}>
+          <p style={{ fontSize: "0.8rem", fontWeight: 700, margin: "0 0 0.4rem" }}>Pre-flight (what a book clears before it prints)</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {check(status.pagesLocked, false, status.pagesLocked ? "every page illustrated" : "pages unfinished")}
+            {check(
+              status.continuity.ran && status.continuity.fresh === true && (status.continuity.issues ?? 1) === 0,
+              status.continuity.ran && ((status.continuity.issues ?? 0) > 0 || status.continuity.fresh === false),
+              status.continuity.ran
+                ? `continuity ${status.continuity.fresh === false ? "(stale)" : `· ${status.continuity.issues} issue(s)`}`
+                : "continuity not run"
+            )}
+            {check(
+              status.narrative.ran && status.narrative.fresh === true && (status.narrative.issues ?? 1) === 0,
+              status.narrative.ran && ((status.narrative.issues ?? 0) > 0 || status.narrative.fresh === false),
+              status.narrative.ran
+                ? `narrative ${status.narrative.fresh === false ? "(stale)" : `· ${status.narrative.issues} issue(s)`}`
+                : "narrative not run"
+            )}
+            {check(
+              status.director.ran && status.director.fresh === true && (status.director.issues ?? 1) === 0,
+              status.director.ran && ((status.director.issues ?? 0) > 0 || status.director.fresh === false),
+              status.director.ran
+                ? `director ${status.director.overall ? `${status.director.overall}/5` : ""} ${status.director.fresh === false ? "(stale)" : `· ${status.director.issues} retake(s)`}`
+                : "director not run"
+            )}
+          </div>
+        </div>
+      )}
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", flexWrap: "wrap" }}>
         {project.storyboard.length > 0 && (
           <a href={`/api/projects/${project.id}/pdf`} style={{ ...btn(true), display: "inline-block", textDecoration: "none" }}>
@@ -1213,6 +1418,7 @@ function StoryboardSection({
   const [activeBeatId, setActiveBeatId] = useState<string | null>(null);
   const [editBeatId, setEditBeatId] = useState<string | null>(null);
   const [shotsBusy, setShotsBusy] = useState(false);
+  const [colorBusy, setColorBusy] = useState(false);
   const activeBeat = project.storyboard.find((b) => b.id === activeBeatId) ?? null;
   const fixBeat = project.storyboard.find((b) => b.id === fixBeatId) ?? null;
   const castById = new Map(project.cast.map((c) => [c.id, c]));
@@ -1237,6 +1443,17 @@ function StoryboardSection({
     }
   }
 
+  async function colorScript() {
+    setColorBusy(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/colorscript`, { method: "POST" });
+      const d = await res.json();
+      if (res.ok) onProject(d.project);
+    } finally {
+      setColorBusy(false);
+    }
+  }
+
   return (
     <section style={{ margin: "1.5rem 0" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", flexWrap: "wrap" }}>
@@ -1244,6 +1461,16 @@ function StoryboardSection({
         {project.storyboard.length > 0 && (
           <button onClick={suggestShots} disabled={shotsBusy} style={btnSmall(false)}>
             {shotsBusy ? "🎥 Thinking…" : "🎥 Suggest shots (fills empty camera/timing notes)"}
+          </button>
+        )}
+        {project.storyboard.length > 1 && (
+          <button
+            onClick={colorScript}
+            disabled={colorBusy}
+            title="The Yasuda pass: light, palette, and mood per page, arcing across the book — feeds the art on the next generation"
+            style={btnSmall(false)}
+          >
+            {colorBusy ? "🎨 Designing…" : "🎨 Color script the book"}
           </button>
         )}
       </div>
@@ -1311,6 +1538,11 @@ function StoryboardSection({
                 <div style={{ fontSize: "0.68rem", opacity: 0.55, marginTop: 2 }}>
                   🎥 {[beat.production.camera, beat.production.timing].filter(Boolean).join(" · ")}
                   {beat.production.shotNotes ? ` — ${beat.production.shotNotes}` : ""}
+                </div>
+              )}
+              {beat.colorScript && (
+                <div style={{ fontSize: "0.68rem", color: "var(--accent-deep)", opacity: 0.8, marginTop: 2 }}>
+                  🎨 {beat.colorScript}
                 </div>
               )}
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>

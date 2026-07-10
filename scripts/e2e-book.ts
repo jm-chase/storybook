@@ -5,6 +5,8 @@
 //
 // Run: npm run validate:e2e   (~$0.8–1.5 depending on rerolls)
 
+export {};
+
 const BASE = process.env.E2E_BASE ?? "http://localhost:3000";
 
 interface Gen {

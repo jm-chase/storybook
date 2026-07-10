@@ -17,7 +17,7 @@ interface Pos {
   y: number;
 }
 
-type CardKind = "page" | "cast" | "env" | "note";
+type CardKind = "page" | "cast" | "env" | "note" | "idea";
 
 interface CardDef {
   id: string;
@@ -41,6 +41,9 @@ const NOTE_H = 120;
 
 function defaultLayout(project: Project): Record<string, Pos> {
   const pos: Record<string, Pos> = {};
+  (project.imageboard ?? []).forEach((im, i) => {
+    pos[im.file] = { x: 60 + i * (ENV_W + 24), y: -180 };
+  });
   project.cast.forEach((c, i) => {
     pos[c.id] = { x: 60 + i * (CAST_W + 28), y: 40 };
   });
@@ -252,6 +255,15 @@ export default function BoardPage() {
         title: e.name,
         subtitle: "setting",
         imageSrc: e.locked ? `/api/projects/${project.id}/images/${e.locked.file}` : undefined,
+        w: ENV_W,
+        h: ENV_H,
+      })),
+      ...(project.imageboard ?? []).map((im) => ({
+        id: im.file,
+        kind: "idea" as const,
+        title: "inspiration",
+        subtitle: "image board",
+        imageSrc: `/api/projects/${project.id}/images/${im.file}`,
         w: ENV_W,
         h: ENV_H,
       })),
@@ -493,6 +505,7 @@ function Inspector({
   const boardNote = notes.find((n) => n.id === card.id) ?? null;
 
   const [production, setProduction] = useState<BeatProduction>(beat?.production ?? {});
+  const [colorScript, setColorScript] = useState(beat?.colorScript ?? "");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -504,7 +517,7 @@ function Inspector({
       const res = await fetch(`/api/projects/${project.id}/beats/${beat.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ production }),
+        body: JSON.stringify({ production, colorScript }),
       });
       const d = await res.json();
       if (res.ok) {
@@ -532,6 +545,12 @@ function Inspector({
         <>
           <div style={{ opacity: 0.75, marginBottom: 6 }}>{beat.sceneDescription}</div>
           {beat.text && <div style={{ fontStyle: "italic", opacity: 0.65, marginBottom: 10 }}>“{beat.text}”</div>}
+          <label style={{ display: "block", marginBottom: 6 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", opacity: 0.55 }}>
+              🎨 color script (feeds the art)
+            </span>
+            <input value={colorScript} onChange={(e) => setColorScript(e.target.value)} style={inspectorInput} />
+          </label>
           {(["camera", "shotNotes", "timing", "dialogue"] as const).map((key) => (
             <label key={key} style={{ display: "block", marginBottom: 6 }}>
               <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", opacity: 0.55 }}>{key}</span>

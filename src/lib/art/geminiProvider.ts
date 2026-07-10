@@ -177,6 +177,10 @@ export async function generateStandaloneScene(args: {
   styleSeed?: StyleSeedRef;
   elementSheet?: StyleSeedRef;
   captionSpace?: boolean;
+  /** Color script (CRAFT_BAR G1): this page's light/palette/mood phrase. */
+  colorScript?: string;
+  /** Layout binding (CRAFT_BAR G2): camera/framing direction. */
+  camera?: string;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
   const refs: LabeledRef[] = [];
@@ -187,6 +191,8 @@ export async function generateStandaloneScene(args: {
   const text =
     labels +
     `A children's picture-book illustration. Scene: ${args.scenePrompt}. ` +
+    (args.camera ? `Camera and framing: ${args.camera}. ` : "") +
+    (args.colorScript ? `Light and colour for this page: ${args.colorScript}. ` : "") +
     (args.captionSpace ? CAPTION_SPACE_INSTRUCTION : "") +
     `Art style: ${args.style.promptFragment}. ` +
     `A single illustration, no characters in focus, no text or lettering.`;
@@ -220,6 +226,10 @@ export async function generateMultiCharacterScene(args: {
   styleSeed?: StyleSeedRef;
   elementSheet?: StyleSeedRef;
   captionSpace?: boolean;
+  /** Color script (CRAFT_BAR G1): this page's light/palette/mood phrase. */
+  colorScript?: string;
+  /** Layout binding (CRAFT_BAR G2): camera/framing direction. */
+  camera?: string;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
   const { characters, scenePrompt, style, environment, styleSeed, elementSheet } = args;
@@ -241,7 +251,11 @@ export async function generateMultiCharacterScene(args: {
     `Pose every character mid-action, actually DOING what the scene describes — natural, lively ` +
     `body language, facing and physically engaging their target — never stiffly standing and ` +
     `facing the viewer unless the scene asks for it. ` +
+    `ACTING: give each character a specific, readable feeling for THIS moment, carried by posture, ` +
+    `hands, and gaze — hesitation, effort, awe, mischief — not a stock smile. ` +
     `Scene: ${scenePrompt}. ` +
+    (args.camera ? `Camera and framing: ${args.camera}. ` : "") +
+    (args.colorScript ? `Light and colour for this page: ${args.colorScript}. ` : "") +
     (args.captionSpace ? CAPTION_SPACE_INSTRUCTION : "") +
     `Art style: ${style.promptFragment}. No text or lettering.`;
   const res = await withRetry(() =>

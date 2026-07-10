@@ -239,6 +239,16 @@ export async function saveEnvironmentImage(
   return saveImage(projectId, `env-${envId}`, base64, mimeType, root);
 }
 
+/** Write an imageboard concept image; returns the stored filename. */
+export async function saveImageboardImage(
+  projectId: string,
+  base64: string,
+  mimeType: string,
+  root: string = DEFAULT_ROOT()
+): Promise<string> {
+  return saveImage(projectId, `idea-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`, base64, mimeType, root);
+}
+
 /** Write a beat's locked page art; returns the stored filename. */
 export async function saveBeatImage(
   projectId: string,

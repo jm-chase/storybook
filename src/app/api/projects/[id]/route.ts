@@ -54,6 +54,7 @@ export async function PATCH(req: Request, { params }: Params) {
       ...project.storyboard.map((s) => s.id),
       ...project.cast.map((c) => c.id),
       ...project.environments.map((e) => e.id),
+      ...(project.imageboard ?? []).map((im) => im.file),
       ...notes.map((n) => n.id),
     ]);
     for (const [key, val] of Object.entries(positions as Record<string, unknown>)) {

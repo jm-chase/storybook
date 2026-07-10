@@ -72,6 +72,13 @@ export interface StoryBeat {
   environmentId?: string;
   /** Production notes (shot list / board inspector). */
   production?: BeatProduction;
+  /**
+   * Color script (CRAFT_BAR G1, the Yasuda discipline): this page's light,
+   * palette, and mood in a short phrase — e.g. "dusk; warm lamplight against
+   * deep blue; hushed". FEEDS THE ART PROMPT. Editing it does not clear
+   * locked art; it applies on the next generation.
+   */
+  colorScript?: string;
   /** Chosen + locked page art. */
   art?: LockedImage;
 }
@@ -102,6 +109,10 @@ export interface Project {
   storyboard: StoryBeat[];
   /** Saved infinite-board layout (optional; defaults are computed). */
   board?: BoardLayout;
+  /** Image boards (CRAFT_BAR G6): loose concept images made BEFORE the story
+   * commits — mood, place, a single resonant image. Inspiration, not canon:
+   * they condition nothing and appear as cards on the infinite board. */
+  imageboard?: LockedImage[];
   createdAt: string;
   updatedAt: string;
   schemaVersion: 1;

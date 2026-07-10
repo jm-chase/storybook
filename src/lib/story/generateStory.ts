@@ -38,7 +38,11 @@ const PLAN_INSTRUCTION = (input: Required<Pick<StoryPromptInput, "premise" | "he
   `Premise: <premise>${input.premise}</premise>. Hero's name: ${JSON.stringify(input.heroName)}. Tone: ${input.tone}. ` +
   `RULES: ` +
   `(1) A clear arc: opening, build, a turning moment, a warm resolution. Simple language, read-aloud rhythm, ` +
-  `one or two short sentences of page text per page. ` +
+  `one or two short sentences of page text per page. Include ONE quiet page — a still moment where nothing ` +
+  `happens except feeling (the pause that lets the story breathe); its text may be very short or even empty. ` +
+  `Respect the child reader: real feelings, no talking down; if there is an adversary, give them an ` +
+  `understandable want — never pure meanness. Ground scenes in observed, sensory detail (weight, weather, ` +
+  `texture) rather than generic prettiness. ` +
   `(2) Invent 1-3 supporting characters. Names must be simple (letters and spaces only, max two words). ` +
   `Descriptions are VISUAL only (species, colours, clothing, one signature prop) — under 200 characters, ` +
   `PERMANENT features only (no poses or expressions). Never a real person, celebrity, or existing branded/` +

@@ -20,9 +20,13 @@ export async function generateSceneVariants(args: {
   environment?: EnvironmentRef;
   /** Beat has page text → keep the bottom of the frame quiet for the caption panel. */
   captionSpace?: boolean;
+  /** Color script phrase for this page (feeds the prompt). */
+  colorScript?: string;
+  /** Camera/framing direction for this page (feeds the prompt). */
+  camera?: string;
   opts?: { variantsWanted?: number; maxAttempts?: number; onEvent?: GateOptions["onEvent"] };
 }): Promise<VariantResult> {
-  const { scenePrompt, style, characters, environment, captionSpace } = args;
+  const { scenePrompt, style, characters, environment, captionSpace, colorScript, camera } = args;
   const variantsWanted = args.opts?.variantsWanted ?? 3;
   const maxAttempts = args.opts?.maxAttempts ?? 6;
 
@@ -31,8 +35,8 @@ export async function generateSceneVariants(args: {
   const generate = async (): Promise<ImageCandidate> => {
     const img =
       characters.length === 0
-        ? await generateStandaloneScene({ scenePrompt, style, environment, styleSeed, elementSheet, captionSpace })
-        : await generateMultiCharacterScene({ characters, scenePrompt, style, environment, styleSeed, elementSheet, captionSpace });
+        ? await generateStandaloneScene({ scenePrompt, style, environment, styleSeed, elementSheet, captionSpace, colorScript, camera })
+        : await generateMultiCharacterScene({ characters, scenePrompt, style, environment, styleSeed, elementSheet, captionSpace, colorScript, camera });
     return { base64: img.base64, mimeType: img.mimeType };
   };
 
