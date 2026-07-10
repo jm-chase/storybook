@@ -1228,6 +1228,38 @@ function SeriesButton({ project, onSwitch }: { project: Project; onSwitch: (p: P
 
 /* ---------------- Settings: persistent locked environments ---------------- */
 
+/** Derive a setting's PARTS SHEET — its objects drawn separately, so scenes
+ * recompose the space instead of tracing the reference (2026-07-10). */
+function PartsButton({ project, envId, onProject }: { project: Project; envId: string; onProject: (p: Project) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function derive() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}/environments/${envId}/components`, { method: "POST" });
+      const d = await res.json();
+      if (res.ok) onProject(d.project);
+      else setError(d.error ?? "failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      <button
+        onClick={derive}
+        disabled={busy}
+        title="Break the setting into its objects so pages can rebuild the space from any angle (fixes the pasted-on-a-backdrop look)"
+        style={btnSmall(true)}
+      >
+        {busy ? "🧩 Deriving…" : "🧩 Derive parts"}
+      </button>
+      {error && <Err>{error}</Err>}
+    </>
+  );
+}
+
 function SettingsSection({ project, onProject }: { project: Project; onProject: (p: Project) => void }) {
   const [activeEnvId, setActiveEnvId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -1310,11 +1342,22 @@ function SettingsSection({ project, onProject }: { project: Project; onProject: 
               🏞️ {env.name}
               {env.locked && <span style={{ color: "#2a9d8f" }}> 🔒</span>}
             </div>
-            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+            {env.components && (
+              <img
+                src={`/api/projects/${project.id}/images/${env.components.file}`}
+                alt={`${env.name} parts`}
+                title="Parts sheet — the setting's objects, used to recompose scenes from any angle"
+                style={{ width: "100%", borderRadius: 8, display: "block", marginTop: 6, border: "1px dashed #00000022" }}
+              />
+            )}
+            <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
               {!env.locked && (
                 <button onClick={() => setActiveEnvId(env.id)} style={btnSmall(true)}>
                   Generate
                 </button>
+              )}
+              {env.locked && !env.components && (
+                <PartsButton project={project} envId={env.id} onProject={onProject} />
               )}
               <button onClick={() => remove(env.id)} style={btnSmall(false)}>
                 Remove
@@ -1478,8 +1521,23 @@ function StoryboardSection({
         <p style={{ fontSize: "0.78rem", opacity: 0.6 }}>Lock your cast first — every page is drawn from their locked references.</p>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-        {project.storyboard.map((beat, i) =>
-          beat.id === editBeatId ? (
+        {project.storyboard.map((beat, i) => {
+          // Stale guard (2026-07-10): the page's art predates a re-lock of a
+          // reference it was drawn from (character fixed, setting redone).
+          const staleFrom = !beat.art
+            ? []
+            : [
+                ...beat.castIds
+                  .map((cid) => castById.get(cid))
+                  .filter((m) => m?.locked && beat.art && m.locked.lockedAt > beat.art.lockedAt)
+                  .map((m) => m!.name),
+                ...(beat.environmentId
+                  ? project.environments
+                      .filter((e) => e.id === beat.environmentId && e.locked && beat.art && e.locked.lockedAt > beat.art.lockedAt)
+                      .map((e) => e.name)
+                  : []),
+              ];
+          return beat.id === editBeatId ? (
             <EditBeatCard
               key={beat.id}
               project={project}
@@ -1522,6 +1580,14 @@ function StoryboardSection({
               <div style={{ fontSize: "0.82rem", fontWeight: 600 }}>
                 Page {i + 1}
                 {beat.art && <span style={{ color: "#2a9d8f" }}> 🔒</span>}
+                {staleFrom.length > 0 && (
+                  <span
+                    title={`Drawn before ${staleFrom.join(" and ")} ${staleFrom.length > 1 ? "were" : "was"} re-locked — regenerate to pick up the new reference`}
+                    style={{ color: "#8a6d3b", fontWeight: 800 }}
+                  >
+                    {" "}↻ stale ({staleFrom.join(", ")})
+                  </span>
+                )}
                 <span style={{ fontWeight: 400, opacity: 0.65 }}>
                   {" "}
                   · {beat.castIds.length === 0 ? "no characters (establishing shot)" : beat.castIds.map((cid) => castById.get(cid)?.name ?? "?").join(", ")}
@@ -1565,8 +1631,8 @@ function StoryboardSection({
               </div>
             </div>
           </div>
-          )
-        )}
+          );
+        })}
       </div>
 
       <AddBeatCard project={project} onProject={onProject} onAdded={(beatId) => setActiveBeatId(beatId)} />

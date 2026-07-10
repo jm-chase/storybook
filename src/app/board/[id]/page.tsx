@@ -543,9 +543,8 @@ function Inspector({
 
       {beat && (
         <>
-          <div style={{ opacity: 0.75, marginBottom: 6 }}>{beat.sceneDescription}</div>
-          {beat.text && <div style={{ fontStyle: "italic", opacity: 0.65, marginBottom: 10 }}>“{beat.text}”</div>}
-          <label style={{ display: "block", marginBottom: 6 }}>
+          <BeatSceneEditor project={project} beat={beat} onProject={onProject} />
+          <label style={{ display: "block", marginBottom: 6, marginTop: 10 }}>
             <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", opacity: 0.55 }}>
               🎨 color script (feeds the art)
             </span>
@@ -564,6 +563,7 @@ function Inspector({
           <button onClick={saveProduction} disabled={busy} style={{ ...toolBtn, marginTop: 4 }}>
             {busy ? "Saving…" : saved ? "Saved ✓" : "Save production notes"}
           </button>
+          <BeatArtStudio project={project} beat={beat} onProject={onProject} />
         </>
       )}
 
@@ -589,6 +589,180 @@ function Inspector({
             🗑 Delete note
           </button>
         </>
+      )}
+    </div>
+  );
+}
+
+/** Inline scene/text editing on the board (scene changes clear art — the
+ * server enforces that; the UI states it). */
+function BeatSceneEditor({
+  project,
+  beat,
+  onProject,
+}: {
+  project: Project;
+  beat: Project["storyboard"][number];
+  onProject: (p: Project) => void;
+}) {
+  const [scene, setScene] = useState(beat.sceneDescription);
+  const [text, setText] = useState(beat.text);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const dirty = scene !== beat.sceneDescription || text !== beat.text;
+
+  async function save() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}/beats/${beat.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sceneDescription: scene, text, castIds: beat.castIds, environmentId: beat.environmentId ?? "" }),
+      });
+      const d = await res.json();
+      if (res.ok) onProject(d.project);
+      else setError(d.fields ? Object.values(d.fields as Record<string, { message: string }>).map((f) => f.message).join(" ") : d.error ?? "save failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <label style={{ display: "block", marginBottom: 6 }}>
+        <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", opacity: 0.55 }}>scene (drives the art)</span>
+        <textarea value={scene} onChange={(e) => setScene(e.target.value)} rows={3} style={{ ...inspectorInput, resize: "vertical" }} />
+      </label>
+      <label style={{ display: "block", marginBottom: 6 }}>
+        <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", opacity: 0.55 }}>page text</span>
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} style={{ ...inspectorInput, resize: "vertical" }} />
+      </label>
+      {dirty && (
+        <button onClick={save} disabled={busy} style={toolBtn}>
+          {busy ? "Saving…" : scene !== beat.sceneDescription && beat.art ? "Save (scene changed — clears the art)" : "Save"}
+        </button>
+      )}
+      {error && <div style={{ color: "var(--accent-deep)", fontSize: 11, marginTop: 4 }}>{error}</div>}
+    </div>
+  );
+}
+
+/** Full generation on the board: generate / regenerate / point-to-fix with
+ * live progress and choose-from-variants, without leaving the canvas. */
+function BeatArtStudio({
+  project,
+  beat,
+  onProject,
+}: {
+  project: Project;
+  beat: Project["storyboard"][number];
+  onProject: (p: Project) => void;
+}) {
+  const [progress, setProgress] = useState("");
+  const [variants, setVariants] = useState<string[]>([]);
+  const [fixText, setFixText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function runStream(path: string, body: unknown) {
+    setBusy(true);
+    setError("");
+    setVariants([]);
+    setProgress("starting…");
+    try {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body ?? {}),
+      });
+      if (!res.headers.get("content-type")?.includes("ndjson")) {
+        const d = await res.json();
+        setError(d.error ?? "failed");
+        return;
+      }
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const msg = JSON.parse(line) as { progress?: { phase: string; attempt: number }; done?: { variants: string[] }; error?: string };
+          if (msg.progress) setProgress(`${msg.progress.phase} (attempt ${msg.progress.attempt})…`);
+          if (msg.error) setError(msg.error);
+          if (msg.done) setVariants(msg.done.variants ?? []);
+        }
+      }
+    } finally {
+      setProgress("");
+      setBusy(false);
+    }
+  }
+
+  async function lock(dataUrl: string) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/beats/${beat.id}/lock`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ imageDataUrl: dataUrl }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        onProject(d.project);
+        setVariants([]);
+      } else setError(d.error ?? "lock failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 10 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <button onClick={() => runStream(`/api/projects/${project.id}/beats/${beat.id}/generate`, {})} disabled={busy} style={toolBtn}>
+          {beat.art ? "♻ Regenerate" : "🎨 Generate art"}
+        </button>
+        {beat.art && (
+          <>
+            <input
+              value={fixText}
+              onChange={(e) => setFixText(e.target.value)}
+              placeholder="point to fix: make the lantern glow"
+              style={{ ...inspectorInput, width: 180, display: "inline-block", marginTop: 0 }}
+            />
+            <button
+              onClick={() => runStream(`/api/projects/${project.id}/beats/${beat.id}/refine`, { instruction: fixText })}
+              disabled={busy || fixText.trim().length === 0}
+              style={toolBtn}
+            >
+              ✏️ Fix
+            </button>
+          </>
+        )}
+      </div>
+      {progress && <div style={{ fontSize: 11.5, marginTop: 6, opacity: 0.7 }}>⏳ {progress}</div>}
+      {error && <div style={{ color: "var(--accent-deep)", fontSize: 11, marginTop: 4 }}>{error}</div>}
+      {variants.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.65, marginBottom: 4 }}>Pick one to lock:</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {variants.map((v, i) => (
+              <img
+                key={i}
+                src={v}
+                alt={`option ${i + 1}`}
+                onClick={() => lock(v)}
+                style={{ width: 92, height: 92, objectFit: "cover", borderRadius: 8, cursor: "pointer", border: "2px solid var(--line)" }}
+              />
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

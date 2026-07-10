@@ -21,7 +21,12 @@ const BORDER_CLAUSE =
   "; (4) a drawn border, frame, or blank margin strip around the artwork — a full-bleed illustration must fill the image edge-to-edge";
 const ACTION_CLAUSE = (sceneDescription: string) =>
   `; (5) the scene's key described action is missing or physically incoherent — e.g. a character described as ` +
-  `blowing at or pushing a thing is facing away from it or disconnected from the effect. ` +
+  `blowing at or pushing a thing is facing away from it or disconnected from the effect` +
+  `; (6) SPATIAL/PHYSICAL LOGIC broken — a character standing ON furniture (a table, a shelf) when the scene ` +
+  `doesn't call for it, or floating without contact with the ground; characters or objects pasted OVER other ` +
+  `objects they should be behind or beside (a door overlapping a table, furniture interpenetrating); wrong ` +
+  `scale against doors or furniture; an INDOOR scene with outdoor ground (grass, a garden floor) inside, or ` +
+  `the reverse, unless the scene asks for it. ` +
   `The scene description: ${JSON.stringify(sceneDescription)}`;
 
 export const qualityCheck: ImageCheck = {

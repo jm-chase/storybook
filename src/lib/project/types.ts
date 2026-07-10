@@ -40,6 +40,13 @@ export interface EnvironmentSetting {
   /** Freeform — drives ART ONLY (firewall, D-018). */
   description: string;
   locked?: LockedImage;
+  /**
+   * Parts sheet (2026-07-10): the setting's individual objects drawn
+   * separately, derived from the locked reference. Passed alongside it so
+   * scenes RECOMPOSE the space from parts instead of tracing the plate
+   * (the "stickers on a backdrop" fix).
+   */
+  components?: LockedImage;
 }
 
 /** Production metadata for a page/panel (storyboard tooling — PRD 2026-07-09).

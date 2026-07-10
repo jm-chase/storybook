@@ -50,6 +50,21 @@ export async function DELETE(_req: Request, { params }: Params) {
   const { id, castId } = await params;
   const project = await getProject(id).catch(() => null);
   if (!project) return NextResponse.json({ error: "not found" }, { status: 404 });
+
+  // Referential integrity (2026-07-10): a character used on pages cannot be
+  // deleted out from under them — that would leave dangling castIds and pages
+  // whose art shows someone who no longer exists.
+  const usedOn = project.storyboard
+    .map((b, i) => (b.castIds.includes(castId) ? i + 1 : null))
+    .filter((p): p is number => p !== null);
+  if (usedOn.length > 0) {
+    const name = project.cast.find((c) => c.id === castId)?.name ?? "This character";
+    return NextResponse.json(
+      { error: `${name} appears on page${usedOn.length > 1 ? "s" : ""} ${usedOn.join(", ")} — edit those pages to remove them first.` },
+      { status: 409 }
+    );
+  }
+
   const before = project.cast.length;
   project.cast = project.cast.filter((c) => c.id !== castId);
   if (project.cast.length === before) return NextResponse.json({ error: "not found" }, { status: 404 });

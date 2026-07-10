@@ -51,8 +51,26 @@ const STYLE_SEED_LABEL =
   "the ART STYLE reference — match its rendering technique, texture, palette, linework, and lighting exactly, " +
   "but do NOT copy its subject, scenery, or content";
 
+// Settings are a BAG OF PARTS to recompose, not a backdrop to trace — tracing
+// the reference plate and pasting characters over it caused the "stickers on
+// a static image" defect (James, 2026-07-10: door overlaid on a table, grass
+// indoors, a character standing on furniture).
 const SETTING_LABEL =
-  "the SETTING — set the scene in this exact location, keeping its architecture, materials, colours, and landscape consistent";
+  "the SETTING — the scene takes place in this location. Treat this reference as the location's PARTS and " +
+  "MATERIALS (its furniture, structures, surfaces, colours, and layout logic), NOT as a fixed backdrop: " +
+  "REBUILD the space from whatever angle and distance the action needs, keeping every part recognizably the " +
+  "same. Respect the space's physical logic — indoor floors stay indoor floors, doors open where doors are, " +
+  "furniture keeps its real size";
+
+const SETTING_PARTS_LABEL =
+  "a PARTS SHEET of the same setting — the location's individual objects drawn separately so you can " +
+  "recompose them freely and accurately from any angle; do NOT copy this sheet's layout";
+
+const GROUNDING_INSTRUCTION =
+  "Place the characters INSIDE the space, not on top of it: feet on a real walkable surface (never standing " +
+  "on tables or furniture unless the scene says so), scale correct against doors and furniture, soft contact " +
+  "shadows where they touch the ground, and let furniture or foreground objects partially overlap them where " +
+  "natural. ";
 
 const ELEMENT_VOCAB_LABEL =
   "the ELEMENT VOCABULARY for this art style — wherever the scene includes sky, clouds, sun, trees, grass, " +
@@ -167,6 +185,8 @@ export interface EnvironmentRef {
   description: string;
   base64: string;
   mimeType: string;
+  /** Optional parts sheet (component breakdown) of the same setting. */
+  parts?: { base64: string; mimeType: string };
 }
 
 /** A scene with NO cast (establishing shot / environment page). */
@@ -186,7 +206,10 @@ export async function generateStandaloneScene(args: {
   const refs: LabeledRef[] = [];
   if (args.styleSeed) refs.push({ label: STYLE_SEED_LABEL, ...args.styleSeed });
   if (args.elementSheet) refs.push({ label: ELEMENT_VOCAB_LABEL, ...args.elementSheet });
-  if (args.environment) refs.push({ label: SETTING_LABEL, base64: args.environment.base64, mimeType: args.environment.mimeType });
+  if (args.environment) {
+    refs.push({ label: SETTING_LABEL, base64: args.environment.base64, mimeType: args.environment.mimeType });
+    if (args.environment.parts) refs.push({ label: SETTING_PARTS_LABEL, ...args.environment.parts });
+  }
   const { labels, parts } = labeled(refs);
   const text =
     labels +
@@ -237,7 +260,10 @@ export async function generateMultiCharacterScene(args: {
   if (styleSeed) refs.push({ label: STYLE_SEED_LABEL, ...styleSeed });
   if (elementSheet) refs.push({ label: ELEMENT_VOCAB_LABEL, ...elementSheet });
   for (const c of characters) refs.push({ label: `${c.label} (${c.description})`, base64: c.base64, mimeType: c.mimeType });
-  if (environment) refs.push({ label: SETTING_LABEL, base64: environment.base64, mimeType: environment.mimeType });
+  if (environment) {
+    refs.push({ label: SETTING_LABEL, base64: environment.base64, mimeType: environment.mimeType });
+    if (environment.parts) refs.push({ label: SETTING_PARTS_LABEL, ...environment.parts });
+  }
   const { labels, parts } = labeled(refs);
   const text =
     labels +
@@ -253,6 +279,7 @@ export async function generateMultiCharacterScene(args: {
     `facing the viewer unless the scene asks for it. ` +
     `ACTING: give each character a specific, readable feeling for THIS moment, carried by posture, ` +
     `hands, and gaze — hesitation, effort, awe, mischief — not a stock smile. ` +
+    GROUNDING_INSTRUCTION +
     `Scene: ${scenePrompt}. ` +
     (args.camera ? `Camera and framing: ${args.camera}. ` : "") +
     (args.colorScript ? `Light and colour for this page: ${args.colorScript}. ` : "") +

@@ -56,6 +56,11 @@ export async function POST(_req: Request, { params }: Params) {
       const img = await readImage(project.id, setting.locked.file);
       if (!img) return NextResponse.json({ error: `The setting's locked image file is missing.` }, { status: 500 });
       environment = { description: setting.description, base64: img.bytes.toString("base64"), mimeType: img.mimeType };
+      // Parts sheet: lets the scene RECOMPOSE the space instead of tracing it.
+      if (setting.components) {
+        const parts = await readImage(project.id, setting.components.file);
+        if (parts) environment.parts = { base64: parts.bytes.toString("base64"), mimeType: parts.mimeType };
+      }
     } else if (setting) {
       return NextResponse.json(
         { error: `Lock the setting "${setting.name}" before generating this page — scenes are drawn from locked references.` },
