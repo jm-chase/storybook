@@ -62,6 +62,8 @@ const INSTRUCTION_HEAD =
   `time-of-day following the scene, scene-motivated outfit changes, a house shown mid-destruction). ` +
   `For each issue, suggest the smallest fix: kind "refine" with a short targeted edit instruction for one ` +
   `page (changing only that detail), or kind "regenerate" when the page needs a full redo. ` +
+  `IMPORTANT: every "pages" and "page" number in your JSON must be the PAGE number from the image labels ` +
+  `("PAGE 3 of 6" → 3), NEVER the image's position in the sequence (reference images come first and don't count). ` +
   `Respond ONLY with JSON: {"issues": [{"pages": [int], "severity": "minor"|"major", "what": string, ` +
   `"fix": {"kind": "refine"|"regenerate", "page": int, "instruction": string}}]} — issues may be empty.`;
 
@@ -128,16 +130,28 @@ export async function reviewBookContinuity(project: Project, root?: string): Pro
   const parsed = JSON.parse(match ? match[0] : raw) as { issues?: unknown };
   if (!Array.isArray(parsed.issues)) throw new Error(`malformed continuity verdict: ${raw.slice(0, 160)}`);
 
+  // The model chronically reports image-sequence indexes instead of page
+  // numbers (reference images precede pages). Remap deterministically: a
+  // number beyond the page count that lands in range after subtracting the
+  // reference count is an image index.
+  const refCount = n - pages.length;
+  const toPage = (v: unknown): number => {
+    const x = Number(v);
+    if (!Number.isFinite(x)) return 0;
+    if (x > pages.length && x - refCount >= 1 && x - refCount <= pages.length) return x - refCount;
+    return x;
+  };
+
   const issues: ContinuityIssue[] = parsed.issues.map((it) => {
     const i = it as Record<string, unknown>;
     const fix = (i.fix ?? {}) as Record<string, unknown>;
     return {
-      pages: Array.isArray(i.pages) ? i.pages.map(Number).filter((x) => Number.isFinite(x)) : [],
+      pages: Array.isArray(i.pages) ? i.pages.map(toPage).filter((x) => x >= 1) : [],
       severity: i.severity === "major" ? "major" : "minor",
       what: String(i.what ?? ""),
       fix: {
         kind: fix.kind === "regenerate" ? "regenerate" : "refine",
-        page: Number(fix.page ?? 0),
+        page: toPage(fix.page),
         instruction: String(fix.instruction ?? ""),
       },
     };

@@ -50,6 +50,9 @@ const PLAN_INSTRUCTION = (input: Required<Pick<StoryPromptInput, "premise" | "he
   `(3) Define 1-3 recurring SETTINGS (short name + visual description under 250 chars) and set each page in one. ` +
   `(4) Each page: sceneDescription = what the ART shows (under 280 chars) — name who is in it, their ACTION and ` +
   `direction, mid-motion; text = the page's prose (under 400 chars), naming characters so a child can follow. ` +
+  `The sceneDescription MUST depict the same action state its own text claims: if the text says they climbed, ` +
+  `the scene shows climbing mid-motion — never resting against text that moves (except the quiet page, where ` +
+  `text and scene rest TOGETHER). ` +
   `(5) castNames per page: the hero is "hero"; others by their exact name. List ONLY characters PHYSICALLY ` +
   `VISIBLE in that page's picture. A character who is merely mentioned (a lamp given by X, thinking of X, ` +
   `X waiting downstairs) must NOT be listed — the art engine draws every listed character into the scene ` +
