@@ -2,6 +2,7 @@ import { getGeminiClient } from "./geminiClient";
 import { withRetry } from "./retry";
 import { GEMINI_VISION_MODEL } from "./outputGate/checks/geminiVision";
 import { readImage } from "../project/store";
+import { bibleContext } from "../project/bible";
 import type { Project } from "../project/types";
 
 // The DIRECTOR'S review (CRAFT_BAR G5) — the exacting eye the other two passes
@@ -76,7 +77,7 @@ export async function directorReview(project: Project, root?: string): Promise<D
   const res = await withRetry(() =>
     ai.models.generateContent({
       model: GEMINI_VISION_MODEL,
-      contents: [{ text: `${labels.join(" ")} ${INSTRUCTION}` }, ...parts],
+      contents: [{ text: `${labels.join(" ")} ${INSTRUCTION}${bibleContext(project.bible)}` }, ...parts],
       config: { responseMimeType: "application/json" },
     })
   );

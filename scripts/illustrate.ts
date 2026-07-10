@@ -2,12 +2,15 @@
 // and page (choosing variant 0 of each gate-cleared set), then run both
 // editor reviews. Resumable — already-locked items are skipped.
 //
-// Run: node --import tsx scripts/illustrate.ts <projectId>   (dev server up)
+// Run: node --import tsx scripts/illustrate.ts <projectId> [--force]
+// --force regenerates every PAGE even if locked (cast/settings stay locked)
+// — the re-render path after engine upgrades. Dev server must be up.
 
 export {};
 
 const BASE = process.env.E2E_BASE ?? "http://localhost:3000";
 const PID = process.argv[2];
+const FORCE = process.argv.includes("--force");
 
 interface Gen {
   variants?: string[];
@@ -83,7 +86,7 @@ async function main() {
   }
   const { project: fresh } = await api<{ project: Doc }>(`/api/projects/${PID}`);
   for (const [i, b] of fresh.storyboard.entries()) {
-    if (b.art) {
+    if (b.art && !FORCE) {
       console.log(`  page ${i + 1}: already locked, skip`);
       continue;
     }

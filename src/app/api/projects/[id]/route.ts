@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProject, saveProject } from "@/lib/project/store";
 import { HOUSE_STYLES } from "@/content/houseStyles";
 import { screenFields } from "@/lib/safety/moderateFreeform";
+import { sanitizeBible } from "@/lib/project/bible";
 
 export const runtime = "nodejs";
 
@@ -28,7 +29,18 @@ export async function PATCH(req: Request, { params }: Params) {
   } catch {
     return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
   }
-  const b = body as { title?: unknown; styleId?: unknown; board?: unknown };
+  const b = body as { title?: unknown; styleId?: unknown; board?: unknown; bible?: unknown };
+
+  // North Star (story bible): screened — its text steers the reviewers.
+  if (b.bible !== undefined) {
+    const { bible, texts } = sanitizeBible(b.bible, project.storyboard.length);
+    if (Object.keys(texts).length > 0) {
+      const screenedBible = await screenFields(texts);
+      if (!screenedBible.ok) return NextResponse.json({ error: screenedBible.message }, { status: screenedBible.status });
+    }
+    if (Object.keys(bible).length > 0) project.bible = bible;
+    else delete project.bible;
+  }
 
   // Board layout: presentational positions + sticky notes. Notes are private
   // planning text (never reach the image model or the book), so they get shape

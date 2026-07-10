@@ -90,6 +90,36 @@ export interface StoryBeat {
   art?: LockedImage;
 }
 
+/** One entry in a bible list (motif / inspiration): the idea plus the pages
+ * where it lives, so the philosophy links back into the book. */
+export interface BibleEntry {
+  id: string;
+  text: string;
+  /** 1-based page numbers this entry points at. */
+  pages?: number[];
+}
+
+/**
+ * The NORTH STAR (2026-07-10): the story bible — the central mission the
+ * artist, writer, and narrator keep reverting to. Not decoration: the
+ * narrative and director reviews JUDGE THE BOOK AGAINST IT, and the color
+ * script consults the art direction.
+ */
+export interface StoryBible {
+  /** What the story is REALLY about — one sentence, the emotional truth. */
+  theme?: string;
+  /** What a child should feel and carry away. */
+  message?: string;
+  /** The narrator's voice — how the words should sound read aloud. */
+  voice?: string;
+  /** The visual philosophy — light, palette temperament, composition values. */
+  artDirection?: string;
+  /** Recurring images/symbols and what they mean, linked to pages. */
+  motifs?: BibleEntry[];
+  /** Touchstones, references, sparks. */
+  inspiration?: BibleEntry[];
+}
+
 /** A free-floating sticky note on the board (position lives in positions). */
 export interface BoardNote {
   id: string;
@@ -120,6 +150,8 @@ export interface Project {
    * commits — mood, place, a single resonant image. Inspiration, not canon:
    * they condition nothing and appear as cards on the infinite board. */
   imageboard?: LockedImage[];
+  /** The North Star — theme, message, voice, art direction, motifs. */
+  bible?: StoryBible;
   createdAt: string;
   updatedAt: string;
   schemaVersion: 1;

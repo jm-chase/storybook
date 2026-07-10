@@ -1,6 +1,7 @@
 import { getGeminiClient } from "../art/geminiClient";
 import { withRetry } from "../art/retry";
 import { GEMINI_VISION_MODEL } from "../art/outputGate/checks/geminiVision";
+import { bibleContext } from "../project/bible";
 import type { Project } from "../project/types";
 
 // Story-level narrative review — the TEXT sibling of the visual continuity
@@ -63,7 +64,7 @@ export async function reviewNarrative(project: Project): Promise<NarrativeReport
   const res = await withRetry(() =>
     ai.models.generateContent({
       model: GEMINI_VISION_MODEL,
-      contents: `${INSTRUCTION}\n\n<pages>\n${JSON.stringify(pages, null, 2)}\n</pages>`,
+      contents: `${INSTRUCTION}${bibleContext(project.bible)}\n\n<pages>\n${JSON.stringify(pages, null, 2)}\n</pages>`,
       config: { responseMimeType: "application/json" },
     })
   );

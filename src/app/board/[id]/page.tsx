@@ -72,6 +72,7 @@ export default function BoardPage() {
   const [narrative, setNarrative] = useState<NarrativeReport | null>(null);
   const [narrativeBusy, setNarrativeBusy] = useState(false);
   const [note, setNote] = useState("");
+  const [showNorthStar, setShowNorthStar] = useState(false);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const drag = useRef<
@@ -411,6 +412,9 @@ export default function BoardPage() {
         <button onClick={addNote} style={{ ...toolBtn, pointerEvents: "auto" }}>
           📝 Note
         </button>
+        <button onClick={() => setShowNorthStar((v) => !v)} style={{ ...toolBtn, pointerEvents: "auto" }}>
+          🧭 North Star
+        </button>
         <button onClick={tidyBoard} style={{ ...toolBtn, pointerEvents: "auto" }}>
           🧹 Tidy
         </button>
@@ -429,6 +433,92 @@ export default function BoardPage() {
           </span>
         )}
       </div>
+
+      {/* North Star: docked left — the philosophy, always one click away */}
+      {showNorthStar && (
+        <div data-inspector style={{ ...panelStyle, right: undefined, left: 12, width: 300 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <strong>🧭 North Star</strong>
+            <button onClick={() => setShowNorthStar(false)} style={{ ...toolBtn, padding: "2px 8px" }}>
+              ✕
+            </button>
+          </div>
+          {!project.bible || Object.keys(project.bible).length === 0 ? (
+            <p style={{ opacity: 0.65, marginTop: 8 }}>
+              No North Star yet — write it in the studio (🧭 North Star section), or draft it from the book there.
+            </p>
+          ) : (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+              {project.bible.theme && (
+                <div>
+                  <div style={nsLabel}>theme</div>
+                  <div style={{ fontWeight: 700 }}>{project.bible.theme}</div>
+                </div>
+              )}
+              {project.bible.message && (
+                <div>
+                  <div style={nsLabel}>message</div>
+                  <div>{project.bible.message}</div>
+                </div>
+              )}
+              {project.bible.voice && (
+                <div>
+                  <div style={nsLabel}>voice</div>
+                  <div style={{ opacity: 0.85 }}>{project.bible.voice}</div>
+                </div>
+              )}
+              {project.bible.artDirection && (
+                <div>
+                  <div style={nsLabel}>art direction</div>
+                  <div style={{ opacity: 0.85 }}>{project.bible.artDirection}</div>
+                </div>
+              )}
+              {(project.bible.motifs ?? []).length > 0 && (
+                <div>
+                  <div style={nsLabel}>motifs</div>
+                  {(project.bible.motifs ?? []).map((m) => (
+                    <div key={m.id} style={{ marginBottom: 4 }}>
+                      {m.text}
+                      {(m.pages ?? []).map((pg) => {
+                        const beat = project.storyboard[pg - 1];
+                        return beat ? (
+                          <button
+                            key={pg}
+                            onClick={() => {
+                              const p = positionsRef.current[beat.id];
+                              const rect = viewportRef.current?.getBoundingClientRect();
+                              if (p && rect) {
+                                setPan({
+                                  x: rect.width / 2 - (p.x + PAGE_W / 2) * zoom,
+                                  y: rect.height / 2 - (p.y + PAGE_H / 2) * zoom,
+                                });
+                                setSelectedId(beat.id);
+                              }
+                            }}
+                            style={{ ...toolBtn, padding: "1px 7px", marginLeft: 4, fontSize: 11 }}
+                          >
+                            p{pg}
+                          </button>
+                        ) : null;
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(project.bible.inspiration ?? []).length > 0 && (
+                <div>
+                  <div style={nsLabel}>inspiration</div>
+                  {(project.bible.inspiration ?? []).map((m) => (
+                    <div key={m.id} style={{ opacity: 0.85, marginBottom: 3 }}>
+                      {m.text}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* right side: inspector wins over narrative panel */}
       {selectedCard ? (
@@ -780,6 +870,14 @@ const panelStyle: React.CSSProperties = {
   boxShadow: "var(--shadow-soft)",
   padding: "0.9rem",
   fontSize: "0.8rem",
+};
+
+const nsLabel: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  opacity: 0.5,
 };
 
 const inspectorInput: React.CSSProperties = {

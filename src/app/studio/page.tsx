@@ -536,6 +536,8 @@ function ProjectView({
 
       {section === "overview" && <OverviewSection project={project} onSection={setSection} onProject={onProject} />}
 
+      {section === "northstar" && <NorthStarSection project={project} onProject={onProject} onSection={setSection} />}
+
       {section === "cast" && (
       <>
       <section style={{ margin: "1.25rem 0" }}>
@@ -714,10 +716,11 @@ function HistorySection({ project, onProject }: { project: Project; onProject: (
   );
 }
 
-type SectionId = "overview" | "cast" | "settings" | "storyboard" | "reviews" | "history" | "print";
+type SectionId = "overview" | "northstar" | "cast" | "settings" | "storyboard" | "reviews" | "history" | "print";
 
 const NAV_ITEMS: { id: SectionId; icon: string; label: string }[] = [
   { id: "overview", icon: "📊", label: "Overview" },
+  { id: "northstar", icon: "🧭", label: "North Star" },
   { id: "cast", icon: "🧸", label: "Cast" },
   { id: "settings", icon: "🏞️", label: "Settings & places" },
   { id: "storyboard", icon: "📖", label: "Storyboard" },
@@ -786,6 +789,159 @@ function navItemStyle(active: boolean): React.CSSProperties {
     color: active ? "var(--accent-deep)" : "inherit",
     boxShadow: "none",
   };
+}
+
+/** The NORTH STAR (2026-07-10): theme, message, voice, art direction, motifs,
+ * inspiration — the philosophy the whole team reverts to. Feeds the narrative
+ * and director reviews and the color script; motifs link back to pages. */
+function NorthStarSection({
+  project,
+  onProject,
+  onSection,
+}: {
+  project: Project;
+  onProject: (p: Project) => void;
+  onSection: (s: SectionId) => void;
+}) {
+  type Entry = { id: string; text: string; pages?: number[] };
+  const b = project.bible ?? {};
+  const [theme, setTheme] = useState(b.theme ?? "");
+  const [message, setMessage] = useState(b.message ?? "");
+  const [voice, setVoice] = useState(b.voice ?? "");
+  const [artDirection, setArtDirection] = useState(b.artDirection ?? "");
+  const [motifs, setMotifs] = useState<Entry[]>(b.motifs ?? []);
+  const [inspiration, setInspiration] = useState<Entry[]>(b.inspiration ?? []);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+
+  async function save() {
+    setBusy(true);
+    setError("");
+    setNote("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ bible: { theme, message, voice, artDirection, motifs, inspiration } }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        onProject(d.project);
+        setNote("North Star saved ✓ — the reviews now judge against it.");
+      } else setError(d.error ?? "save failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function suggest() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}/bible/suggest`, { method: "POST" });
+      const d = await res.json();
+      if (!res.ok) {
+        setError(d.error ?? "suggestion failed");
+        return;
+      }
+      const s = d.bible ?? {};
+      if (!theme && s.theme) setTheme(s.theme);
+      if (!message && s.message) setMessage(s.message);
+      if (!voice && s.voice) setVoice(s.voice);
+      if (!artDirection && s.artDirection) setArtDirection(s.artDirection);
+      if (motifs.length === 0 && s.motifs) setMotifs(s.motifs);
+      setNote("Drafted from the book — edit freely, then Save.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const fieldMeta: [string, string, string, (v: string) => void, string][] = [
+    ["Theme", "What is this story REALLY about? One sentence.", theme, setTheme, "broken things — and people — can be mended with patience and warm hands"],
+    ["Message", "What should a child feel and carry away?", message, setMessage, "you are small, and you can still help mend big things"],
+    ["Voice", "How should the words sound read aloud?", voice, setVoice, "quiet, unhurried, a little amazed — pauses welcome"],
+    ["Art direction", "The visual philosophy the artist reverts to.", artDirection, setArtDirection, "warm pinpoints of light against soft darkness; small figures in big gentle spaces"],
+  ];
+
+  const entryList = (label: string, hint: string, list: Entry[], set: (l: Entry[]) => void) => (
+    <div style={{ marginTop: "0.9rem" }}>
+      <p style={{ fontSize: "0.85rem", fontWeight: 700, margin: "0 0 0.15rem" }}>{label}</p>
+      <p style={{ fontSize: "0.72rem", opacity: 0.6, margin: "0 0 0.4rem" }}>{hint}</p>
+      {list.map((m, i) => (
+        <div key={m.id} style={{ display: "flex", gap: 6, alignItems: "flex-start", marginBottom: 6 }}>
+          <input
+            value={m.text}
+            onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))}
+            style={{ ...inputStyle(false), marginTop: 0, flex: 2 }}
+          />
+          <input
+            value={(m.pages ?? []).join(",")}
+            onChange={(e) =>
+              set(
+                list.map((x, j) =>
+                  j === i ? { ...x, pages: e.target.value.split(",").map((n) => parseInt(n.trim(), 10)).filter((n) => !isNaN(n)) } : x
+                )
+              )
+            }
+            placeholder="pages: 2,5"
+            title="Page numbers this links to"
+            style={{ ...inputStyle(false), marginTop: 0, width: 90, flexShrink: 0 }}
+          />
+          {(m.pages ?? []).map((p) => (
+            <button key={p} onClick={() => onSection("storyboard")} title={`Open the storyboard at page ${p}`} style={{ ...btnSmall(false), marginTop: 4 }}>
+              p{p}
+            </button>
+          ))}
+          <button onClick={() => set(list.filter((_, j) => j !== i))} style={{ ...btnSmall(false), marginTop: 4 }}>
+            ✕
+          </button>
+        </div>
+      ))}
+      <button
+        onClick={() => set([...list, { id: `b-${Date.now().toString(36)}`, text: "" }])}
+        style={btnSmall(false)}
+      >
+        ＋ add
+      </button>
+    </div>
+  );
+
+  return (
+    <section style={{ margin: "1.25rem 0", maxWidth: 760 }}>
+      <p style={{ fontSize: "0.8rem", opacity: 0.7, marginTop: 0 }}>
+        The philosophy this book keeps reverting to. Not a memo — the <strong>narrative and director reviews judge
+        the book against it</strong>, and the color script honours the art direction.
+      </p>
+      <div style={{ display: "flex", gap: 8, marginBottom: "0.8rem" }}>
+        <button onClick={suggest} disabled={busy || project.storyboard.length < 2} style={btn(false)}>
+          {busy ? "✨ Reading the book…" : "✨ Draft it from the book"}
+        </button>
+        <button onClick={save} disabled={busy} style={btn(true)}>
+          Save North Star
+        </button>
+      </div>
+      {note && <p style={{ fontSize: "0.8rem", color: "#2a9d8f", fontWeight: 700 }}>{note}</p>}
+      {error && <Err>{error}</Err>}
+
+      {fieldMeta.map(([label, hint, value, set, placeholder]) => (
+        <label key={label} style={{ display: "block", marginBottom: "0.7rem" }}>
+          <span style={{ fontSize: "0.85rem", fontWeight: 700 }}>{label}</span>
+          <span style={{ fontSize: "0.72rem", opacity: 0.6, display: "block" }}>{hint}</span>
+          <textarea
+            value={value}
+            onChange={(e) => set(e.target.value)}
+            rows={2}
+            placeholder={placeholder}
+            style={{ ...inputStyle(false), resize: "vertical" }}
+          />
+        </label>
+      ))}
+
+      {entryList("Motifs", "Recurring images and what they mean — link each to the pages it lives on.", motifs, setMotifs)}
+      {entryList("Inspiration", "Touchstones, references, sparks — anything the team should hold onto.", inspiration, setInspiration)}
+    </section>
+  );
 }
 
 /** Overview: at-a-glance progress + readiness (the "analysis" home) + the

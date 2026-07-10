@@ -34,7 +34,11 @@ export async function POST(_req: Request, { params }: Params) {
     text: b.text,
     setting: b.environmentId ? envById.get(b.environmentId) : undefined,
   }));
+  const artDirection = project.bible?.artDirection
+    ? ` The book's declared ART DIRECTION — honour it: ${JSON.stringify(project.bible.artDirection)}.`
+    : "";
   const instruction =
+    artDirection +
     `You are the color designer of a children's picture-book studio, in the tradition of a great animation ` +
     `color department: color follows time of day, material truth, and EMOTION, and it must ARC across the book ` +
     `— the palette of the ending should feel earned against the palette of the opening. ` +
