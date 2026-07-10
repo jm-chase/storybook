@@ -23,7 +23,10 @@ export async function generateEnvironmentVariants(
   const elementSheet = (await getElementSheet(style)) ?? undefined;
   const generate = async (): Promise<ImageCandidate> => {
     const img = await generateStandaloneScene({
-      scenePrompt: `an establishing view of ${description}, empty of people and creatures`,
+      scenePrompt:
+        `an establishing view of ${description}, empty of people and creatures. ` +
+        `Keep the space physically true: indoor floors are indoor floors — no grass, wildflowers, or garden ` +
+        `ground inside a building unless the description asks for it`,
       style,
       styleSeed,
       elementSheet,

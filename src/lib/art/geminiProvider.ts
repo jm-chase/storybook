@@ -75,7 +75,8 @@ const GROUNDING_INSTRUCTION =
 const ELEMENT_VOCAB_LABEL =
   "the ELEMENT VOCABULARY for this art style — wherever the scene includes sky, clouds, sun, trees, grass, " +
   "bushes, flowers, rocks, or water, draw them in exactly the manner shown here, adapted to the scene's " +
-  "lighting and composition; do NOT copy this sheet's layout or plain background";
+  "lighting and composition; do NOT copy this sheet's layout or plain background, and do NOT insert elements " +
+  "the scene doesn't contain — no clouds, grass, or flowers inside buildings";
 
 // Pages with text get a typeset caption panel overlaid on the lower part of
 // the art (bookPdf) — ask the model to keep that region visually quiet.

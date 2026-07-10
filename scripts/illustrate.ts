@@ -23,7 +23,7 @@ interface Doc {
   title: string;
   styleId: string;
   cast: { id: string; name: string; role: string; description: string; locked?: unknown }[];
-  environments: { id: string; name: string; locked?: unknown }[];
+  environments: { id: string; name: string; locked?: unknown; components?: unknown }[];
   storyboard: { id: string; art?: unknown; castIds: string[] }[];
 }
 
@@ -83,6 +83,18 @@ async function main() {
       {},
       `/api/projects/${PID}/environments/${e.id}/lock`
     );
+  }
+  // Parts sheets BEFORE pages: scenes recompose settings from components.
+  const { project: locked } = await api<{ project: Doc }>(`/api/projects/${PID}`);
+  for (const e of locked.environments.filter((x) => x.locked && !x.components)) {
+    process.stdout.write(`  parts sheet for ${e.name}… `);
+    try {
+      await api(`/api/projects/${PID}/environments/${e.id}/components`, { method: "POST", body: "{}" });
+      totalCost += 0.039;
+      console.log("done");
+    } catch (err) {
+      console.log(`failed (non-fatal): ${(err as Error).message.slice(0, 80)}`);
+    }
   }
   const { project: fresh } = await api<{ project: Doc }>(`/api/projects/${PID}`);
   for (const [i, b] of fresh.storyboard.entries()) {
