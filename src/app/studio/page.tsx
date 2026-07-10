@@ -154,6 +154,8 @@ function Picker({
       )}
       {loading && <p style={{ fontSize: "0.8rem", opacity: 0.6 }}>Loading your books…</p>}
 
+      <PromptSection onCreated={onCreated} />
+
       <TemplateSection onCreated={onCreated} />
 
       <section style={{ marginTop: "1.5rem", maxWidth: 560 }}>
@@ -278,6 +280,123 @@ function ManuscriptSection({ onCreated }: { onCreated: (p: Project) => void }) {
 }
 
 /* ---------------- Start from a template (skin 2) ---------------- */
+
+/** Prompt-to-storyboard (PRD #1): premise in, ready-to-illustrate book out. */
+function PromptSection({ onCreated }: { onCreated: (p: Project) => void }) {
+  const [open, setOpen] = useState(false);
+  const [premise, setPremise] = useState("");
+  const [heroName, setHeroName] = useState("");
+  const [heroDescription, setHeroDescription] = useState("");
+  const [tone, setTone] = useState("");
+  const [pages, setPages] = useState(6);
+  const [styleId, setStyleId] = useState("painted-wonder");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+
+  async function create() {
+    setBusy(true);
+    setErrors({});
+    try {
+      const res = await fetch("/api/projects/from-prompt", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ premise, heroName, heroDescription, tone, pages, styleId }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setErrors(
+          d.fields
+            ? Object.fromEntries(Object.entries(d.fields as Record<string, { message: string }>).map(([k, v]) => [k, v.message]))
+            : { premise: d.error ?? "Could not build the story." }
+        );
+        return;
+      }
+      onCreated(d.project);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section style={{ marginTop: "1.5rem" }}>
+      <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>✨ Start from an idea (the story engine writes the book)</p>
+      {!open ? (
+        <button onClick={() => setOpen(true)} style={btn(true)}>
+          ✨ Tell me the idea…
+        </button>
+      ) : (
+        <div style={{ ...card(true), cursor: "default", maxWidth: 620 }}>
+          <label style={{ display: "block", marginBottom: "0.5rem" }}>
+            <span style={labelText}>What&apos;s the story about?</span>
+            <textarea
+              value={premise}
+              onChange={(e) => setPremise(e.target.value)}
+              rows={2}
+              maxLength={520}
+              placeholder="a lighthouse keeper's cat who is afraid of the dark, until the night the light goes out"
+              style={{ ...inputStyle(!!errors.premise), resize: "vertical" }}
+            />
+            {errors.premise && <Err>{errors.premise}</Err>}
+          </label>
+          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+            <label style={{ flex: 1, minWidth: 160 }}>
+              <span style={labelText}>Your hero&apos;s name</span>
+              <input value={heroName} onChange={(e) => setHeroName(e.target.value)} style={inputStyle(!!errors.heroName)} />
+              {errors.heroName && <Err>{errors.heroName}</Err>}
+            </label>
+            <label style={{ flex: 2, minWidth: 220 }}>
+              <span style={labelText}>Describe your hero (art only)</span>
+              <input
+                value={heroDescription}
+                onChange={(e) => setHeroDescription(e.target.value)}
+                placeholder="a freckled 5-year-old boy with curly red hair"
+                style={inputStyle(!!errors.heroDescription)}
+              />
+              {errors.heroDescription && <Err>{errors.heroDescription}</Err>}
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+            <label style={{ flex: 1, minWidth: 140 }}>
+              <span style={labelText}>Tone (optional)</span>
+              <input value={tone} onChange={(e) => setTone(e.target.value)} placeholder="gently funny" style={inputStyle(false)} />
+            </label>
+            <label>
+              <span style={labelText}>Pages</span>
+              <select value={pages} onChange={(e) => setPages(Number(e.target.value))} style={inputStyle(false)}>
+                {[4, 5, 6, 7, 8].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span style={labelText}>Art style</span>
+              <select value={styleId} onChange={(e) => setStyleId(e.target.value)} style={inputStyle(false)}>
+                {HOUSE_STYLES.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: "0.7rem" }}>
+            <button onClick={create} disabled={busy} style={btn(true)}>
+              {busy ? "✨ Writing the story…" : "✨ Write my book"}
+            </button>
+            <button onClick={() => setOpen(false)} style={btn(false)}>
+              Cancel
+            </button>
+          </div>
+          <p style={{ fontSize: "0.7rem", opacity: 0.55, marginTop: 6 }}>
+            The engine writes the title, supporting cast, settings, and every page — you review, lock, and illustrate.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
 
 function TemplateSection({ onCreated }: { onCreated: (p: Project) => void }) {
   const [templateId, setTemplateId] = useState<string | null>(null);
@@ -529,13 +648,73 @@ function ProjectView({
         />
       )}
 
+      {section === "history" && <HistorySection project={project} onProject={onProject} />}
+
       {section === "print" && <PrintSection project={project} onProject={onProject} />}
       </div>
     </div>
   );
 }
 
-type SectionId = "overview" | "cast" | "settings" | "storyboard" | "reviews" | "print";
+/** Version history: every save snapshots the previous document; restore is
+ * itself undoable (the current version is snapshotted first). */
+function HistorySection({ project, onProject }: { project: Project; onProject: (p: Project) => void }) {
+  const [entries, setEntries] = useState<{ file: string; savedAt: string; title: string; beatCount: number; castCount: number }[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    fetch(`/api/projects/${project.id}/history`)
+      .then((r) => r.json())
+      .then((d) => setEntries(d.history ?? []));
+  }, [project.id, project.updatedAt]);
+
+  async function restore(file: string) {
+    setBusy(true);
+    setNote("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}/history`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ file }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        onProject(d.project);
+        setNote("Restored ✓ (the version you were on was snapshotted too)");
+      } else setNote(d.error ?? "restore failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section style={{ margin: "1.25rem 0" }}>
+      <p style={{ fontSize: "0.8rem", opacity: 0.65, marginTop: 0 }}>
+        Every save keeps a snapshot of the book&apos;s structure and text (locked images aren&apos;t versioned).
+      </p>
+      {note && <p style={{ fontSize: "0.8rem", color: "#2a9d8f", fontWeight: 700 }}>{note}</p>}
+      {entries.length === 0 && <p style={{ fontSize: "0.8rem", opacity: 0.6 }}>No snapshots yet — they appear as you work.</p>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {entries.map((e) => (
+          <div key={e.file} style={{ ...card(false), cursor: "default", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "0.82rem", fontWeight: 700 }}>{new Date(e.savedAt).toLocaleString()}</div>
+              <div style={{ fontSize: "0.72rem", opacity: 0.65 }}>
+                “{e.title}” · {e.beatCount} pages · {e.castCount} cast
+              </div>
+            </div>
+            <button onClick={() => restore(e.file)} disabled={busy} style={btnSmall(false)}>
+              ⤺ Restore
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+type SectionId = "overview" | "cast" | "settings" | "storyboard" | "reviews" | "history" | "print";
 
 const NAV_ITEMS: { id: SectionId; icon: string; label: string }[] = [
   { id: "overview", icon: "📊", label: "Overview" },
@@ -543,6 +722,7 @@ const NAV_ITEMS: { id: SectionId; icon: string; label: string }[] = [
   { id: "settings", icon: "🏞️", label: "Settings & places" },
   { id: "storyboard", icon: "📖", label: "Storyboard" },
   { id: "reviews", icon: "🔍", label: "Reviews & insights" },
+  { id: "history", icon: "🕘", label: "History" },
   { id: "print", icon: "🖨️", label: "Print & export" },
 ];
 
@@ -765,6 +945,18 @@ function PrintSection({ project, onProject }: { project: Project; onProject: (p:
           </a>
         )}
         {project.cast.some((c) => c.locked) && <SeriesButton project={project} onSwitch={onProject} />}
+      </div>
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.6rem" }}>
+        {project.storyboard.length > 0 && (
+          <a href={`/api/projects/${project.id}/shotlist?format=csv`} style={{ ...btn(false), display: "inline-block", textDecoration: "none" }}>
+            🎬 Shot list (CSV)
+          </a>
+        )}
+        {project.storyboard.length > 0 && (
+          <a href={`/api/projects/${project.id}/shotlist`} style={{ ...btn(false), display: "inline-block", textDecoration: "none" }}>
+            🧾 Board metadata (JSON)
+          </a>
+        )}
       </div>
       <p style={{ fontSize: "0.78rem", opacity: 0.65, marginTop: "0.8rem" }}>
         Ordering a printed copy runs through the Lulu integration once credentials are configured (see{" "}
@@ -1020,6 +1212,7 @@ function StoryboardSection({
 }) {
   const [activeBeatId, setActiveBeatId] = useState<string | null>(null);
   const [editBeatId, setEditBeatId] = useState<string | null>(null);
+  const [shotsBusy, setShotsBusy] = useState(false);
   const activeBeat = project.storyboard.find((b) => b.id === activeBeatId) ?? null;
   const fixBeat = project.storyboard.find((b) => b.id === fixBeatId) ?? null;
   const castById = new Map(project.cast.map((c) => [c.id, c]));
@@ -1033,9 +1226,27 @@ function StoryboardSection({
     }
   }
 
+  async function suggestShots() {
+    setShotsBusy(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/shots/suggest`, { method: "POST" });
+      const d = await res.json();
+      if (res.ok) onProject(d.project);
+    } finally {
+      setShotsBusy(false);
+    }
+  }
+
   return (
     <section style={{ margin: "1.5rem 0" }}>
-      <p style={{ fontSize: "0.9rem", fontWeight: 600 }}>The storyboard</p>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", flexWrap: "wrap" }}>
+        <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: 0 }}>The storyboard</p>
+        {project.storyboard.length > 0 && (
+          <button onClick={suggestShots} disabled={shotsBusy} style={btnSmall(false)}>
+            {shotsBusy ? "🎥 Thinking…" : "🎥 Suggest shots (fills empty camera/timing notes)"}
+          </button>
+        )}
+      </div>
       {project.cast.length === 0 && (
         <p style={{ fontSize: "0.78rem", opacity: 0.6 }}>Lock your cast first — every page is drawn from their locked references.</p>
       )}
@@ -1095,6 +1306,12 @@ function StoryboardSection({
               <div style={{ fontSize: "0.78rem", opacity: 0.8, marginTop: 2 }}>{beat.sceneDescription}</div>
               {beat.text && (
                 <div style={{ fontSize: "0.78rem", fontStyle: "italic", opacity: 0.65, marginTop: 2 }}>&ldquo;{beat.text}&rdquo;</div>
+              )}
+              {beat.production && (
+                <div style={{ fontSize: "0.68rem", opacity: 0.55, marginTop: 2 }}>
+                  🎥 {[beat.production.camera, beat.production.timing].filter(Boolean).join(" · ")}
+                  {beat.production.shotNotes ? ` — ${beat.production.shotNotes}` : ""}
+                </div>
               )}
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                 {!beat.art && (
@@ -1448,6 +1665,21 @@ function EditBeatCard({
   const [environmentId, setEnvironmentId] = useState(beat.environmentId ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [textOptions, setTextOptions] = useState<string[]>([]);
+  const [suggestBusy, setSuggestBusy] = useState(false);
+
+  async function suggestText() {
+    setSuggestBusy(true);
+    setTextOptions([]);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/beats/${beat.id}/suggest-text`, { method: "POST" });
+      const d = await res.json();
+      if (res.ok) setTextOptions(d.options ?? []);
+      else setErrors((prev) => ({ ...prev, text: d.error ?? "suggestion failed" }));
+    } finally {
+      setSuggestBusy(false);
+    }
+  }
 
   function toggleCast(id: string) {
     setCastIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
@@ -1492,7 +1724,19 @@ function EditBeatCard({
         {errors.sceneDescription && <Err>{errors.sceneDescription}</Err>}
       </label>
       <label style={{ display: "block", marginBottom: "0.5rem" }}>
-        <span style={labelText}>Page text</span>
+        <span style={labelText}>
+          Page text{" "}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              void suggestText();
+            }}
+            disabled={suggestBusy}
+            style={{ ...btnSmall(false), marginLeft: 6 }}
+          >
+            {suggestBusy ? "✨ thinking…" : "✨ Suggest"}
+          </button>
+        </span>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -1501,6 +1745,23 @@ function EditBeatCard({
           style={{ ...inputStyle(!!errors.text), resize: "vertical" }}
         />
         {errors.text && <Err>{errors.text}</Err>}
+        {textOptions.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
+            {textOptions.map((o, i) => (
+              <button
+                key={i}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setText(o);
+                  setTextOptions([]);
+                }}
+                style={{ ...btnSmall(false), textAlign: "left", whiteSpace: "normal", lineHeight: 1.4 }}
+              >
+                {o}
+              </button>
+            ))}
+          </div>
+        )}
       </label>
       <span style={labelText}>Who&apos;s in this page?</span>
       <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", margin: "0.35rem 0 0.5rem" }}>

@@ -81,11 +81,90 @@ export async function getProject(id: string, root: string = DEFAULT_ROOT()): Pro
   }
 }
 
-/** Persist the project (bumps updatedAt). Returns the saved document. */
+/** How many document snapshots to keep per project (version history). */
+const HISTORY_KEEP = 30;
+
+/** Persist the project (bumps updatedAt). The PREVIOUS document is snapshotted
+ * into history/ first (version history — structure and text only; locked
+ * image files are overwritten in place and are not versioned). */
 export async function saveProject(project: Project, root: string = DEFAULT_ROOT()): Promise<Project> {
+  await snapshotCurrent(project.id, root).catch(() => {});
   const saved: Project = { ...project, updatedAt: new Date().toISOString() };
   await writeProjectFile(root, saved);
   return saved;
+}
+
+async function snapshotCurrent(projectId: string, root: string): Promise<void> {
+  const current = await fs.readFile(path.join(projectDir(root, projectId), "project.json"), "utf8").catch(() => null);
+  if (!current) return;
+  // Don't snapshot the just-created blank document (creation flows write an
+  // empty project then immediately save the filled one — a junk version).
+  try {
+    const doc = JSON.parse(current) as Project;
+    if ((doc.storyboard?.length ?? 0) === 0 && (doc.cast?.length ?? 0) === 0 && (doc.environments?.length ?? 0) === 0) return;
+  } catch {
+    /* snapshot unparseable docs anyway */
+  }
+  const dir = path.join(projectDir(root, projectId), "history");
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(path.join(dir, `${Date.now()}.json`), current, "utf8");
+  const entries = (await fs.readdir(dir)).filter((f) => /^\d+\.json$/.test(f)).sort();
+  for (const old of entries.slice(0, Math.max(0, entries.length - HISTORY_KEEP))) {
+    await fs.unlink(path.join(dir, old)).catch(() => {});
+  }
+}
+
+export interface HistoryEntry {
+  /** Snapshot filename (epoch-ms.json). */
+  file: string;
+  savedAt: string;
+  title: string;
+  beatCount: number;
+  castCount: number;
+}
+
+/** List a project's document snapshots, newest first. */
+export async function listHistory(projectId: string, root: string = DEFAULT_ROOT()): Promise<HistoryEntry[]> {
+  const dir = path.join(projectDir(root, projectId), "history");
+  let files: string[];
+  try {
+    files = (await fs.readdir(dir)).filter((f) => /^\d+\.json$/.test(f)).sort().reverse();
+  } catch {
+    return [];
+  }
+  const entries: HistoryEntry[] = [];
+  for (const file of files) {
+    try {
+      const doc = JSON.parse(await fs.readFile(path.join(dir, file), "utf8")) as Project;
+      entries.push({
+        file,
+        savedAt: new Date(Number(file.replace(".json", ""))).toISOString(),
+        title: doc.title,
+        beatCount: doc.storyboard?.length ?? 0,
+        castCount: doc.cast?.length ?? 0,
+      });
+    } catch {
+      /* skip corrupt snapshot */
+    }
+  }
+  return entries;
+}
+
+/** Restore a snapshot (the current document is snapshotted first, so a restore
+ * is itself undoable). Returns the restored project. */
+export async function restoreSnapshot(projectId: string, file: string, root: string = DEFAULT_ROOT()): Promise<Project | null> {
+  assertSafeFilename(file, "history file");
+  const src = path.join(projectDir(root, projectId), "history", file);
+  let doc: Project;
+  try {
+    doc = JSON.parse(await fs.readFile(src, "utf8")) as Project;
+  } catch {
+    return null;
+  }
+  await snapshotCurrent(projectId, root).catch(() => {});
+  doc.updatedAt = new Date().toISOString();
+  await writeProjectFile(root, doc);
+  return doc;
 }
 
 export async function listProjects(root: string = DEFAULT_ROOT()): Promise<ProjectSummary[]> {

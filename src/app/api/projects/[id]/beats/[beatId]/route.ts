@@ -21,7 +21,33 @@ export async function PATCH(req: Request, { params }: Params) {
   } catch {
     return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
   }
-  const b = body as { sceneDescription?: unknown; text?: unknown; castIds?: unknown; environmentId?: unknown };
+  const b = body as {
+    sceneDescription?: unknown;
+    text?: unknown;
+    castIds?: unknown;
+    environmentId?: unknown;
+    production?: unknown;
+  };
+
+  // Production metadata (camera/shot/timing/dialogue): planning notes only —
+  // never sent to the image model, never typeset. Editing them keeps the art.
+  if (b.production !== undefined) {
+    const p = (typeof b.production === "object" && b.production !== null ? b.production : {}) as Record<string, unknown>;
+    const clean: Record<string, string> = {};
+    for (const key of ["camera", "shotNotes", "timing", "dialogue"] as const) {
+      const v = typeof p[key] === "string" ? (p[key] as string).replace(/\s+/g, " ").trim().slice(0, 200) : "";
+      if (v) clean[key] = v;
+    }
+    const screenedProd = await screenFields(clean);
+    if (!screenedProd.ok) return NextResponse.json({ error: screenedProd.message }, { status: screenedProd.status });
+    if (Object.keys(clean).length > 0) beat.production = clean;
+    else delete beat.production;
+    // Production-only PATCH: save and return without touching scene fields.
+    if (b.sceneDescription === undefined && b.text === undefined && b.castIds === undefined && b.environmentId === undefined) {
+      const saved = await saveProject(project);
+      return NextResponse.json({ project: saved });
+    }
+  }
 
   const built = validateBeatInput(
     {

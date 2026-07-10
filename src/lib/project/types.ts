@@ -42,6 +42,20 @@ export interface EnvironmentSetting {
   locked?: LockedImage;
 }
 
+/** Production metadata for a page/panel (storyboard tooling — PRD 2026-07-09).
+ * Pure planning notes: never sent to the image model, never typeset in the
+ * book; they live in the shot list and the board inspector. */
+export interface BeatProduction {
+  /** Camera direction, e.g. "low angle, wide". */
+  camera?: string;
+  /** Shot/blocking notes. */
+  shotNotes?: string;
+  /** Timing note, e.g. "slow page turn" / "2s". */
+  timing?: string;
+  /** Spoken-dialogue note (for animatic/read-aloud planning). */
+  dialogue?: string;
+}
+
 /** One page/spread of the book: who's in it, what happens visually, the page text. */
 export interface StoryBeat {
   id: string;
@@ -56,15 +70,24 @@ export interface StoryBeat {
   castIds: string[];
   /** Where this beat takes place — an EnvironmentSetting id, if assigned. */
   environmentId?: string;
+  /** Production notes (shot list / board inspector). */
+  production?: BeatProduction;
   /** Chosen + locked page art. */
   art?: LockedImage;
 }
 
+/** A free-floating sticky note on the board (position lives in positions). */
+export interface BoardNote {
+  id: string;
+  text: string;
+}
+
 /** Free spatial layout of the infinite storyboard board: item id (beat / cast /
- * environment) → canvas position. Purely presentational — reading order lives
- * in `storyboard`, and the board syncs it from the pages' left-to-right x. */
+ * environment / note) → canvas position. Purely presentational — reading order
+ * lives in `storyboard`, and the board syncs it from the pages' left-to-right x. */
 export interface BoardLayout {
   positions: Record<string, { x: number; y: number }>;
+  notes?: BoardNote[];
 }
 
 export interface Project {

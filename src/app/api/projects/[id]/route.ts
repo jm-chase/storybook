@@ -30,17 +30,31 @@ export async function PATCH(req: Request, { params }: Params) {
   }
   const b = body as { title?: unknown; styleId?: unknown; board?: unknown };
 
-  // Board layout: presentational positions only — validated shape, no text.
+  // Board layout: presentational positions + sticky notes. Notes are private
+  // planning text (never reach the image model or the book), so they get shape
+  // and length validation, not the content screen.
   if (b.board !== undefined) {
     const positions = (b.board as { positions?: unknown })?.positions;
     if (typeof positions !== "object" || positions === null) {
       return NextResponse.json({ error: "board.positions must be an object" }, { status: 400 });
+    }
+    const rawNotes = (b.board as { notes?: unknown })?.notes;
+    const notes: { id: string; text: string }[] = [];
+    if (rawNotes !== undefined) {
+      if (!Array.isArray(rawNotes)) return NextResponse.json({ error: "board.notes must be an array" }, { status: 400 });
+      for (const n of rawNotes.slice(0, 100)) {
+        const r = n as { id?: unknown; text?: unknown };
+        if (typeof r?.id !== "string" || !/^[a-z0-9-]+$/.test(r.id)) continue;
+        const text = typeof r.text === "string" ? r.text.slice(0, 300) : "";
+        notes.push({ id: r.id, text });
+      }
     }
     const clean: Record<string, { x: number; y: number }> = {};
     const known = new Set([
       ...project.storyboard.map((s) => s.id),
       ...project.cast.map((c) => c.id),
       ...project.environments.map((e) => e.id),
+      ...notes.map((n) => n.id),
     ]);
     for (const [key, val] of Object.entries(positions as Record<string, unknown>)) {
       if (!known.has(key)) continue;
@@ -48,7 +62,7 @@ export async function PATCH(req: Request, { params }: Params) {
       if (typeof p?.x !== "number" || typeof p?.y !== "number" || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
       clean[key] = { x: Math.round(p.x), y: Math.round(p.y) };
     }
-    project.board = { positions: clean };
+    project.board = { positions: clean, ...(notes.length > 0 ? { notes } : {}) };
   }
 
   if (typeof b.title === "string") {
