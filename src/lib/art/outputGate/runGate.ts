@@ -43,9 +43,14 @@ export interface GateOutcome {
 /**
  * `generate` is the (already provider-bound) image generator — calling it again
  * produces a fresh candidate (a reroll). Checks run concurrently per candidate.
+ *
+ * REROLL-WITH-REASON (2026-07-10): rerolls are not blind — the previous
+ * attempt's rejection reasons are handed to `generate` so the next candidate
+ * can be told what to avoid. Generators that ignore the argument keep the old
+ * behavior.
  */
 export async function runGate(
-  generate: () => Promise<ImageCandidate>,
+  generate: (avoid?: string) => Promise<ImageCandidate>,
   checks: ImageCheck[],
   ctx: GateContext,
   opts: GateOptions
@@ -53,6 +58,7 @@ export async function runGate(
   const variants: ImageCandidate[] = [];
   const rejected: RejectedCandidate[] = [];
   let attempts = 0;
+  let avoid: string | undefined;
 
   const emit = (e: Omit<GateProgress, "cleanSoFar" | "wanted">) =>
     opts.onEvent?.({ ...e, cleanSoFar: variants.length, wanted: opts.variantsWanted });
@@ -60,7 +66,7 @@ export async function runGate(
   while (variants.length < opts.variantsWanted && attempts < opts.maxAttempts) {
     attempts++;
     emit({ phase: "generating", attempt: attempts });
-    const candidate = await generate();
+    const candidate = await generate(avoid);
     emit({ phase: "checking", attempt: attempts });
     const results = await Promise.all(checks.map((c) => c.run(candidate, ctx)));
     const failures = results.filter((r) => r.status === "fail");
@@ -69,6 +75,11 @@ export async function runGate(
       emit({ phase: "accepted", attempt: attempts });
     } else {
       rejected.push({ candidate, failures });
+      // Feed the next attempt what went wrong (trimmed — it's steering, not a essay).
+      avoid = failures
+        .map((f) => f.reason ?? f.check)
+        .join("; ")
+        .slice(0, 400);
       emit({ phase: "rejected", attempt: attempts, reason: failures[0].reason });
     }
   }

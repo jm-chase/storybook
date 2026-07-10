@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { getProject, saveProject, saveCastImage } from "@/lib/project/store";
+import { extractManifest } from "@/lib/art/manifest";
+import { deriveCharacterCard } from "@/lib/art/characterCard";
+import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
 
 // Lock a cast member: persist the chosen variant as the character's permanent
-// reference image (D-015 — generated once, then frozen).
+// reference image (D-015 — generated once, then frozen), then COMPILE the
+// character (settei, 2026-07-10): extract the feature/wardrobe MANIFEST
+// (checklist for prompts + the consistency judge) and derive the CHARACTER
+// CARD (turnaround + poses + expressions) that scenes use instead of the
+// single-pose reference. Both are best-effort — the lock itself never fails
+// because of them.
 //
 // v1 (local, single-user): the client posts back the winning data-URL it
 // received from /api/generate-character. HOSTED NOTE (LG-6 family): once
@@ -10,6 +18,7 @@ import { getProject, saveProject, saveCastImage } from "@/lib/project/store";
 // of accepting client-supplied image bytes — otherwise the gate is bypassable.
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 const DATA_URL = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/;
 
@@ -36,6 +45,31 @@ export async function POST(req: Request, { params }: Params) {
 
   const file = await saveCastImage(project.id, member.id, base64, mimeType);
   member.locked = { file, mimeType, lockedAt: new Date().toISOString() };
+
+  // Compile the character (best-effort; a failure leaves manifest/card absent).
+  try {
+    member.manifest = await extractManifest(base64, mimeType, member.description);
+  } catch (e) {
+    console.warn(`[lock] manifest extraction failed for ${member.name}: ${(e as Error).message.slice(0, 120)}`);
+  }
+  try {
+    const style = HOUSE_STYLE_BY_ID[project.styleId];
+    if (style) {
+      const card = await deriveCharacterCard({
+        refBase64: base64,
+        refMimeType: mimeType,
+        description: member.description,
+        style,
+      });
+      if (card) {
+        const cardFile = await saveCastImage(project.id, `${member.id}-card`, card.base64, card.mimeType);
+        member.card = { file: cardFile, mimeType: card.mimeType, lockedAt: new Date().toISOString() };
+      }
+    }
+  } catch (e) {
+    console.warn(`[lock] card derivation failed for ${member.name}: ${(e as Error).message.slice(0, 120)}`);
+  }
+
   const saved = await saveProject(project);
   return NextResponse.json({ project: saved });
 }

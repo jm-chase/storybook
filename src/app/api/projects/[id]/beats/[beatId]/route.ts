@@ -28,7 +28,31 @@ export async function PATCH(req: Request, { params }: Params) {
     environmentId?: unknown;
     production?: unknown;
     colorScript?: unknown;
+    acting?: unknown;
   };
+
+  // Acting note: feeds the art prompt on the next generation (like colorScript).
+  if (b.acting !== undefined) {
+    const note = typeof b.acting === "string" ? b.acting.replace(/\s+/g, " ").trim().slice(0, 200) : "";
+    if (note) {
+      const screenedActing = await screenFields({ acting: note });
+      if (!screenedActing.ok) return NextResponse.json({ error: screenedActing.message }, { status: screenedActing.status });
+      beat.acting = note;
+    } else {
+      delete beat.acting;
+    }
+    if (
+      b.sceneDescription === undefined &&
+      b.text === undefined &&
+      b.castIds === undefined &&
+      b.environmentId === undefined &&
+      b.production === undefined &&
+      b.colorScript === undefined
+    ) {
+      const saved = await saveProject(project);
+      return NextResponse.json({ project: saved });
+    }
+  }
 
   // Color script: feeds the ART prompt on the next generation; editing it does
   // NOT clear locked art (deliberate — see types.ts).

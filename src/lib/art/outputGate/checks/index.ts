@@ -2,10 +2,12 @@ import type { ImageCheck } from "../types";
 import { safetyCheck } from "./safetyCheck";
 import { qualityCheck } from "./qualityCheck";
 import { consistencyCheck } from "./consistencyCheck";
+import { contactCheck } from "./contactCheck";
 
 export { qualityCheck } from "./qualityCheck";
 export { consistencyCheck } from "./consistencyCheck";
 export { safetyCheck } from "./safetyCheck";
+export { contactCheck } from "./contactCheck";
 export { visionVerdict, type Verdict } from "./geminiVision";
 
 /**
@@ -16,5 +18,5 @@ export { visionVerdict, type Verdict } from "./geminiVision";
  * (LAUNCH_GATES.md, LG-1).
  */
 export function defaultChecks(): ImageCheck[] {
-  return [safetyCheck, qualityCheck, consistencyCheck];
+  return [safetyCheck, qualityCheck, contactCheck, consistencyCheck];
 }

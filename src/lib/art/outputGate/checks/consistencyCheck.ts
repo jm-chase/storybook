@@ -14,6 +14,11 @@ export const consistencyCheck: ImageCheck = {
     if (ctx.references && ctx.references.length > 0) {
       const refs = ctx.references;
       const labels = refs.map((r, i) => `Image ${i + 1} is the locked reference for ${r.label}.`).join(" ");
+      // Settei manifests: explicit per-character checklists beat holistic vibes.
+      const checklists = refs
+        .filter((r) => r.checklist)
+        .map((r) => `For ${r.label}, VERIFY EACH ITEM explicitly and FAIL if any is violated: ${r.checklist}.`)
+        .join(" ");
       const v = await visionVerdict(
         [...refs.map((r) => ({ base64: r.base64, mimeType: r.mimeType })), candidate],
         `${labels} The FINAL image is a story scene meant to feature ALL of these characters together. ` +
@@ -23,6 +28,7 @@ export const consistencyCheck: ImageCheck = {
           "motivates different clothing (in bed → pajamas, in water → swimsuit). A character missing its reference " +
           "outfit with no such reason IS a fail. " +
           "Also FAIL if any character's SIZE relative to the others clearly contradicts the references. " +
+          (checklists ? `${checklists} ` : "") +
           "PASS only if every listed character appears and each is unmistakably its reference."
       );
       return { check: "consistency", status: v.pass ? "pass" : "fail", reason: v.reason };

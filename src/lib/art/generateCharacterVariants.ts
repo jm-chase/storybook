@@ -31,8 +31,8 @@ export async function generateCharacterVariants(
   const maxAttempts = opts.maxAttempts ?? 6; // reroll/cost budget
 
   const styleSeed = (await getStyleSeed(style)) ?? undefined;
-  const generate = async (): Promise<ImageCandidate> => {
-    const img = await generateCharacterSheet(brief, style, styleSeed);
+  const generate = async (avoid?: string): Promise<ImageCandidate> => {
+    const img = await generateCharacterSheet(brief, style, styleSeed, avoid);
     return { base64: img.base64, mimeType: img.mimeType };
   };
 

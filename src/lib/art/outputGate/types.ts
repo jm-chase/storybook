@@ -26,6 +26,8 @@ export interface NamedReference {
   label: string;
   base64: string;
   mimeType: string;
+  /** Settei manifest checklist — the judge verifies each item explicitly. */
+  checklist?: string;
 }
 
 export interface GateContext {

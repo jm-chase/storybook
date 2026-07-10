@@ -24,19 +24,21 @@ export async function generateSceneVariants(args: {
   colorScript?: string;
   /** Camera/framing direction for this page (feeds the prompt). */
   camera?: string;
+  /** Acting note for this page (feeds the prompt; multi-character scenes). */
+  acting?: string;
   opts?: { variantsWanted?: number; maxAttempts?: number; onEvent?: GateOptions["onEvent"] };
 }): Promise<VariantResult> {
-  const { scenePrompt, style, characters, environment, captionSpace, colorScript, camera } = args;
+  const { scenePrompt, style, characters, environment, captionSpace, colorScript, camera, acting } = args;
   const variantsWanted = args.opts?.variantsWanted ?? 3;
   const maxAttempts = args.opts?.maxAttempts ?? 6;
 
   const styleSeed = (await getStyleSeed(style)) ?? undefined;
   const elementSheet = (await getElementSheet(style)) ?? undefined;
-  const generate = async (): Promise<ImageCandidate> => {
+  const generate = async (avoid?: string): Promise<ImageCandidate> => {
     const img =
       characters.length === 0
-        ? await generateStandaloneScene({ scenePrompt, style, environment, styleSeed, elementSheet, captionSpace, colorScript, camera })
-        : await generateMultiCharacterScene({ characters, scenePrompt, style, environment, styleSeed, elementSheet, captionSpace, colorScript, camera });
+        ? await generateStandaloneScene({ scenePrompt, style, environment, styleSeed, elementSheet, captionSpace, colorScript, camera, avoid })
+        : await generateMultiCharacterScene({ characters, scenePrompt, style, environment, styleSeed, elementSheet, captionSpace, colorScript, camera, acting, avoid });
     return { base64: img.base64, mimeType: img.mimeType };
   };
 
@@ -48,7 +50,14 @@ export async function generateSceneVariants(args: {
       brief: { name: "", description: scenePrompt, styleId: style.id },
       style,
       kind: "scene",
-      references: characters.map((c) => ({ label: c.label, base64: c.base64, mimeType: c.mimeType })),
+      references: characters.map((c) => ({
+        label: c.label,
+        base64: c.base64,
+        mimeType: c.mimeType,
+        checklist: c.manifest
+          ? [...c.manifest.identity, ...c.manifest.wardrobe.map((w) => `wearing ${w}`)].join("; ")
+          : undefined,
+      })),
     },
     { variantsWanted, maxAttempts, onEvent: args.opts?.onEvent }
   );

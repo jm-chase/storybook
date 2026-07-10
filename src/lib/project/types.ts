@@ -28,6 +28,19 @@ export interface CastMember {
   description: string;
   /** Present once the parent has chosen + locked a reference. */
   locked?: LockedImage;
+  /**
+   * Feature manifest (settei, 2026-07-10): the canonical CHECKLIST extracted
+   * from the locked reference — identity features that must hold in every
+   * view (beard, hairline, markings) and the exact wardrobe items. Scene
+   * prompts state it; the consistency judge verifies it item by item.
+   */
+  manifest?: { identity: string[]; wardrobe: string[] };
+  /**
+   * Character card (settei): one composite model sheet derived from the
+   * locked reference — turnaround views, action poses, expressions — passed
+   * to scenes INSTEAD of the single-pose reference.
+   */
+  card?: LockedImage;
 }
 
 /** A persistent setting (D-020 refinement): described once, locked as a
@@ -86,6 +99,12 @@ export interface StoryBeat {
    * locked art; it applies on the next generation.
    */
   colorScript?: string;
+  /**
+   * Acting note (settei package): each character's emotion, physical state,
+   * and the action's progress for THIS page — arcs across the book. FEEDS
+   * THE ART PROMPT like colorScript (no art-clear on edit).
+   */
+  acting?: string;
   /** Chosen + locked page art. */
   art?: LockedImage;
 }

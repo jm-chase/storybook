@@ -41,8 +41,8 @@ export async function refineImageVariants(args: {
   const maxAttempts = args.opts?.maxAttempts ?? 6;
   const original: ImageCandidate = { base64, mimeType };
 
-  const generate = async (): Promise<ImageCandidate> => {
-    const img = await editImage({ base64, mimeType, instruction, style });
+  const generate = async (avoid?: string): Promise<ImageCandidate> => {
+    const img = await editImage({ base64, mimeType, instruction, style, avoid });
     return { base64: img.base64, mimeType: img.mimeType };
   };
 

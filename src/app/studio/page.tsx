@@ -573,14 +573,29 @@ function ProjectView({
               <div style={{ fontSize: "0.85rem", fontWeight: 600 }}>
                 {ROLE_META[m.role].emoji} {m.name}
                 {m.locked && <span style={{ color: "#2a9d8f" }}> 🔒</span>}
+                {m.card && <span title="Model sheet compiled: turnaround, poses, expressions"> 🎴</span>}
               </div>
               <div style={{ fontSize: "0.7rem", opacity: 0.65 }}>{ROLE_META[m.role].label}</div>
-              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              {m.card && (
+                <img
+                  src={`/api/projects/${project.id}/images/${m.card.file}`}
+                  alt={`${m.name} model sheet`}
+                  title="Character card (settei): scenes draw from these views, poses, and expressions"
+                  style={{ width: "100%", borderRadius: 8, display: "block", marginTop: 6, border: "1px dashed #00000022" }}
+                />
+              )}
+              {m.manifest && (
+                <div style={{ fontSize: "0.64rem", opacity: 0.6, marginTop: 4 }}>
+                  📋 {[...m.manifest.identity, ...m.manifest.wardrobe].join(" · ")}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
                 {!m.locked && (
                   <button onClick={() => setActiveId(m.id)} style={btnSmall(true)}>
                     Generate
                   </button>
                 )}
+                {m.locked && !m.card && <CompileButton project={project} castId={m.id} onProject={onProject} />}
                 {m.locked && (
                   <button onClick={() => setFixCastId(m.id)} style={btnSmall(true)}>
                     ✏️ Fix
@@ -1384,6 +1399,38 @@ function SeriesButton({ project, onSwitch }: { project: Project; onSwitch: (p: P
 
 /* ---------------- Settings: persistent locked environments ---------------- */
 
+/** Compile a locked character (settei): extract the feature/wardrobe manifest
+ * and derive the model-sheet card. New locks compile automatically. */
+function CompileButton({ project, castId, onProject }: { project: Project; castId: string; onProject: (p: Project) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function compile() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}/cast/${castId}/compile`, { method: "POST" });
+      const d = await res.json();
+      if (res.ok) onProject(d.project);
+      else setError(d.error ?? "failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      <button
+        onClick={compile}
+        disabled={busy}
+        title="Build the model sheet (turnaround + poses + expressions) and the feature checklist — the settei that keeps this character stable in every scene"
+        style={btnSmall(true)}
+      >
+        {busy ? "🎴 Compiling…" : "🎴 Compile"}
+      </button>
+      {error && <Err>{error}</Err>}
+    </>
+  );
+}
+
 /** Derive a setting's PARTS SHEET — its objects drawn separately, so scenes
  * recompose the space instead of tracing the reference (2026-07-10). */
 function PartsButton({ project, envId, onProject }: { project: Project; envId: string; onProject: (p: Project) => void }) {
@@ -1618,6 +1665,7 @@ function StoryboardSection({
   const [editBeatId, setEditBeatId] = useState<string | null>(null);
   const [shotsBusy, setShotsBusy] = useState(false);
   const [colorBusy, setColorBusy] = useState(false);
+  const [actingBusy, setActingBusy] = useState(false);
   const activeBeat = project.storyboard.find((b) => b.id === activeBeatId) ?? null;
   const fixBeat = project.storyboard.find((b) => b.id === fixBeatId) ?? null;
   const castById = new Map(project.cast.map((c) => [c.id, c]));
@@ -1653,6 +1701,17 @@ function StoryboardSection({
     }
   }
 
+  async function actingSheet() {
+    setActingBusy(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/acting`, { method: "POST" });
+      const d = await res.json();
+      if (res.ok) onProject(d.project);
+    } finally {
+      setActingBusy(false);
+    }
+  }
+
   return (
     <section style={{ margin: "1.5rem 0" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", flexWrap: "wrap" }}>
@@ -1670,6 +1729,16 @@ function StoryboardSection({
             style={btnSmall(false)}
           >
             {colorBusy ? "🎨 Designing…" : "🎨 Color script the book"}
+          </button>
+        )}
+        {project.storyboard.length > 1 && (
+          <button
+            onClick={actingSheet}
+            disabled={actingBusy}
+            title="The acting pass: each page's emotion, energy, and action progress, arcing across the book — feeds the art"
+            style={btnSmall(false)}
+          >
+            {actingBusy ? "🎭 Directing…" : "🎭 Acting sheet"}
           </button>
         )}
       </div>
@@ -1765,6 +1834,11 @@ function StoryboardSection({
               {beat.colorScript && (
                 <div style={{ fontSize: "0.68rem", color: "var(--accent-deep)", opacity: 0.8, marginTop: 2 }}>
                   🎨 {beat.colorScript}
+                </div>
+              )}
+              {beat.acting && (
+                <div style={{ fontSize: "0.68rem", color: "#6a5acd", opacity: 0.85, marginTop: 2 }}>
+                  🎭 {beat.acting}
                 </div>
               )}
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>

@@ -52,7 +52,12 @@ const INSTRUCTION_HEAD =
   `effect disconnected (e.g. a character blowing at a thing while facing away from it); ` +
   `(4) objects that appear or vanish illogically between consecutive pages; ` +
   `(5) a page that breaks the book's art style, or has a border or frame while the others are full-bleed; ` +
-  `(6) anything else that would make a child or parent stop and say "wait, that's wrong". ` +
+  `(6) POSE REPETITION — a character drawn in the same or nearly the same pose on multiple pages (a cat sitting ` +
+  `in the identical loaf on three pages): characters should act differently as the story moves; ` +
+  `(7) TEXT-PROGRESS MISMATCH — the page image contradicts the action state or emotion its own text claims ` +
+  `(text says "up and up they climbed" while the characters sit comfortably; text implies worry while faces ` +
+  `read content); ` +
+  `(8) anything else that would make a child or parent stop and say "wait, that's wrong". ` +
   `Report ONLY real problems — do not invent issues, and do not flag deliberate story changes (lighting or ` +
   `time-of-day following the scene, scene-motivated outfit changes, a house shown mid-destruction). ` +
   `For each issue, suggest the smallest fix: kind "refine" with a short targeted edit instruction for one ` +

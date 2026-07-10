@@ -66,6 +66,10 @@ const SETTING_PARTS_LABEL =
   "a PARTS SHEET of the same setting — the location's individual objects drawn separately so you can " +
   "recompose them freely and accurately from any angle; do NOT copy this sheet's layout";
 
+/** Reroll steering: what the gate rejected last attempt (runGate feeds it). */
+const avoidClause = (avoid?: string) =>
+  avoid ? `A PREVIOUS attempt was REJECTED for these problems — do not repeat them: ${avoid}. ` : "";
+
 const GROUNDING_INSTRUCTION =
   "Place the characters INSIDE the space, not on top of it: feet on a real walkable surface (never standing " +
   "on tables or furniture unless the scene says so), scale correct against doors and furniture, soft contact " +
@@ -100,12 +104,14 @@ function labeled(refs: LabeledRef[]): { labels: string; parts: { inlineData: { m
 export async function generateCharacterSheet(
   brief: CharacterBrief,
   style: HouseStyle,
-  styleSeed?: StyleSeedRef
+  styleSeed?: StyleSeedRef,
+  avoid?: string
 ): Promise<GeneratedImage> {
   const ai = getGeminiClient();
   const { labels, parts } = labeled(styleSeed ? [{ label: STYLE_SEED_LABEL, ...styleSeed }] : []);
   const prompt =
     labels +
+    avoidClause(avoid) +
     `A children's picture-book character reference: a single character, full body, ` +
     `friendly and appealing, on a plain neutral background. ` +
     `Character: ${brief.description}. ` +
@@ -161,6 +167,7 @@ export async function editImage(args: {
   mimeType: string;
   instruction: string;
   style: HouseStyle;
+  avoid?: string;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
   const res = await withRetry(() =>
@@ -169,6 +176,7 @@ export async function editImage(args: {
       contents: [
         {
           text:
+            avoidClause(args.avoid) +
             `Edit this illustration. Make ONLY this change: ${args.instruction}. ` +
             `Keep everything else EXACTLY as it is — same characters, faces, colours, ` +
             `composition, background, and art style (${args.style.promptFragment}). ` +
@@ -202,6 +210,8 @@ export async function generateStandaloneScene(args: {
   colorScript?: string;
   /** Layout binding (CRAFT_BAR G2): camera/framing direction. */
   camera?: string;
+  /** Reroll steering from the gate. */
+  avoid?: string;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
   const refs: LabeledRef[] = [];
@@ -214,6 +224,7 @@ export async function generateStandaloneScene(args: {
   const { labels, parts } = labeled(refs);
   const text =
     labels +
+    avoidClause(args.avoid) +
     `A children's picture-book illustration. Scene: ${args.scenePrompt}. ` +
     (args.camera ? `Camera and framing: ${args.camera}. ` : "") +
     (args.colorScript ? `Light and colour for this page: ${args.colorScript}. ` : "") +
@@ -233,8 +244,21 @@ export interface CharacterRef {
   /** e.g. "the hero", "the sidekick". */
   label: string;
   description: string;
+  /** The reference image — the character CARD (model sheet) when one exists,
+   * else the single locked reference. */
   base64: string;
   mimeType: string;
+  /** Feature/wardrobe checklist (settei manifest) — stated in the prompt. */
+  manifest?: { identity: string[]; wardrobe: string[] };
+}
+
+function characterLabel(c: CharacterRef): string {
+  let label = `${c.label} (${c.description}`;
+  if (c.manifest) {
+    if (c.manifest.identity.length > 0) label += `; MUST ALWAYS HOLD: ${c.manifest.identity.join(", ")}`;
+    if (c.manifest.wardrobe.length > 0) label += `; WEARING EXACTLY: ${c.manifest.wardrobe.join(", ")}`;
+  }
+  return label + ")";
 }
 
 /**
@@ -254,13 +278,17 @@ export async function generateMultiCharacterScene(args: {
   colorScript?: string;
   /** Layout binding (CRAFT_BAR G2): camera/framing direction. */
   camera?: string;
+  /** Acting beat-sheet note: per-character emotion + progress for this page. */
+  acting?: string;
+  /** Reroll steering from the gate. */
+  avoid?: string;
 }): Promise<GeneratedImage> {
   const ai = getGeminiClient();
   const { characters, scenePrompt, style, environment, styleSeed, elementSheet } = args;
   const refs: LabeledRef[] = [];
   if (styleSeed) refs.push({ label: STYLE_SEED_LABEL, ...styleSeed });
   if (elementSheet) refs.push({ label: ELEMENT_VOCAB_LABEL, ...elementSheet });
-  for (const c of characters) refs.push({ label: `${c.label} (${c.description})`, base64: c.base64, mimeType: c.mimeType });
+  for (const c of characters) refs.push({ label: characterLabel(c), base64: c.base64, mimeType: c.mimeType });
   if (environment) {
     refs.push({ label: SETTING_LABEL, base64: environment.base64, mimeType: environment.mimeType });
     if (environment.parts) refs.push({ label: SETTING_PARTS_LABEL, ...environment.parts });
@@ -268,6 +296,7 @@ export async function generateMultiCharacterScene(args: {
   const { labels, parts } = labeled(refs);
   const text =
     labels +
+    avoidClause(args.avoid) +
     `Draw a SINGLE illustration showing these characters together. ` +
     `Keep EACH character's IDENTITY exactly as in their reference image — same face, hair, ` +
     `eyes, colours, markings, and body proportions — and do NOT blend or mix their features. ` +
@@ -280,6 +309,7 @@ export async function generateMultiCharacterScene(args: {
     `facing the viewer unless the scene asks for it. ` +
     `ACTING: give each character a specific, readable feeling for THIS moment, carried by posture, ` +
     `hands, and gaze — hesitation, effort, awe, mischief — not a stock smile. ` +
+    (args.acting ? `Acting direction for this page — follow it exactly: ${args.acting}. ` : "") +
     GROUNDING_INSTRUCTION +
     `Scene: ${scenePrompt}. ` +
     (args.camera ? `Camera and framing: ${args.camera}. ` : "") +

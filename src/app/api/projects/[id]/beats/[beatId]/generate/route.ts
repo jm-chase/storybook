@@ -38,13 +38,19 @@ export async function POST(_req: Request, { params }: Params) {
         { status: 409 }
       );
     }
-    const img = await readImage(project.id, member.locked.file);
+    // Settei: scenes see the character CARD (turnaround + poses + expressions)
+    // when one exists — the single-pose reference is the fallback.
+    const source = member.card ?? member.locked;
+    const img = await readImage(project.id, source.file);
     if (!img) return NextResponse.json({ error: `${member.name}'s locked image file is missing.` }, { status: 500 });
     characters.push({
-      label: `the ${member.role} ${member.name}`,
+      label: member.card
+        ? `the ${member.role} ${member.name} — its reference is a MODEL SHEET showing turnaround views, poses, and expressions; pick the view and pose that fit this scene, never copy the sheet's layout`
+        : `the ${member.role} ${member.name}`,
       description: member.description,
       base64: img.bytes.toString("base64"),
       mimeType: img.mimeType,
+      manifest: member.manifest,
     });
   }
 
@@ -78,6 +84,7 @@ export async function POST(_req: Request, { params }: Params) {
       captionSpace: Boolean(beat.text),
       colorScript: beat.colorScript,
       camera: beat.production?.camera,
+      acting: beat.acting,
       opts: { onEvent: emitProgress },
     });
     if (result.variants.length === 0) {

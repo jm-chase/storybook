@@ -596,6 +596,7 @@ function Inspector({
 
   const [production, setProduction] = useState<BeatProduction>(beat?.production ?? {});
   const [colorScript, setColorScript] = useState(beat?.colorScript ?? "");
+  const [acting, setActing] = useState(beat?.acting ?? "");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -607,7 +608,7 @@ function Inspector({
       const res = await fetch(`/api/projects/${project.id}/beats/${beat.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ production, colorScript }),
+        body: JSON.stringify({ production, colorScript, acting }),
       });
       const d = await res.json();
       if (res.ok) {
@@ -639,6 +640,12 @@ function Inspector({
               🎨 color script (feeds the art)
             </span>
             <input value={colorScript} onChange={(e) => setColorScript(e.target.value)} style={inspectorInput} />
+          </label>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", opacity: 0.55 }}>
+              🎭 acting (feeds the art)
+            </span>
+            <input value={acting} onChange={(e) => setActing(e.target.value)} style={inspectorInput} />
           </label>
           {(["camera", "shotNotes", "timing", "dialogue"] as const).map((key) => (
             <label key={key} style={{ display: "block", marginBottom: 6 }}>

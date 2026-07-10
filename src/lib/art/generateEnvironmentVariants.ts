@@ -21,7 +21,7 @@ export async function generateEnvironmentVariants(
 
   const styleSeed = (await getStyleSeed(style)) ?? undefined;
   const elementSheet = (await getElementSheet(style)) ?? undefined;
-  const generate = async (): Promise<ImageCandidate> => {
+  const generate = async (avoid?: string): Promise<ImageCandidate> => {
     const img = await generateStandaloneScene({
       scenePrompt:
         `an establishing view of ${description}, empty of people and creatures. ` +
@@ -30,6 +30,7 @@ export async function generateEnvironmentVariants(
       style,
       styleSeed,
       elementSheet,
+      avoid,
     });
     return { base64: img.base64, mimeType: img.mimeType };
   };
