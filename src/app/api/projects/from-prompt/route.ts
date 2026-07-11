@@ -3,6 +3,7 @@ import { createProject, saveProject } from "@/lib/project/store";
 import { generateStoryPlan } from "@/lib/story/generateStory";
 import { buildCharacterBrief } from "@/lib/art/brief";
 import { HOUSE_STYLES } from "@/content/houseStyles";
+import { isValidStyleId, listStyles } from "@/lib/styles/registry";
 import { screenFields, moderateFreeform } from "@/lib/safety/moderateFreeform";
 
 // Prompt-to-storyboard (PRD acceptance criterion #1): premise in, a complete
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
 
   const heroBuilt = buildCharacterBrief(
     { name: b.heroName, description: b.heroDescription, styleId: HOUSE_STYLES[0].id },
-    HOUSE_STYLES.map((s) => s.id)
+    (await listStyles()).map((s) => s.id)
   );
   if (!heroBuilt.ok) {
     for (const [k, m] of Object.entries(heroBuilt.errors)) {
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     }
   }
   const styleId =
-    typeof b.styleId === "string" && HOUSE_STYLES.some((s) => s.id === b.styleId) ? b.styleId : "painted-wonder";
+    typeof b.styleId === "string" && (await isValidStyleId(b.styleId)) ? b.styleId : "painted-wonder";
   const tone = typeof b.tone === "string" ? b.tone.replace(/\s+/g, " ").trim().slice(0, 60) : "";
   if (Object.keys(fields).length > 0) {
     return NextResponse.json({ error: "validation", fields }, { status: 400 });

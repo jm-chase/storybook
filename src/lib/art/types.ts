@@ -12,12 +12,22 @@ export interface HouseStyle {
   /**
    * The attribute vocabulary we feed the image model. OUR words only — never
    * "in the style of <studio/artist>". This is the runtime style instruction.
+   * Custom styles derive theirs from the user's reference images as
+   * TECHNIQUE attributes only (same rule).
    */
   promptFragment: string;
   /** Palette swatches for the picker card + placeholder art. */
   swatches: string[];
-  /** Locked seed reference image ids — empty until we generate + lock real seeds (B-2). */
+  /** Seed plate + element sheet filenames: [<seed>, <elements>]. */
   seedRefs: string[];
+  /**
+   * Custom styles (2026-07-11): where this style's seed files live —
+   * built-ins read assets/styleSeeds/; user-created styles read their own
+   * directory under the user's styles store.
+   */
+  seedDir?: string;
+  /** True for user-created styles (minted from uploaded references). */
+  custom?: boolean;
 }
 
 /**

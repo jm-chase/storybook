@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProject, readImage } from "@/lib/project/store";
 import { generateSceneVariants } from "@/lib/art/generateSceneVariants";
-import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
+import { getStyleById } from "@/lib/styles/registry";
 import type { CharacterRef, EnvironmentRef } from "@/lib/art/geminiProvider";
 import { streamNdjson } from "@/lib/api/streamNdjson";
 
@@ -24,7 +24,7 @@ export async function POST(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not configured on the server." }, { status: 500 });
   }
 
-  const style = HOUSE_STYLE_BY_ID[project.styleId];
+  const style = await getStyleById(project.styleId);
   if (!style) return NextResponse.json({ error: "project has an unknown style" }, { status: 500 });
 
   // Resolve the beat's cast to locked references — every member must be locked.

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProject, saveProject } from "@/lib/project/store";
 import { buildCharacterBrief } from "@/lib/art/brief";
-import { HOUSE_STYLES } from "@/content/houseStyles";
+import { listStyles } from "@/lib/styles/registry";
 import { screenFields } from "@/lib/safety/moderateFreeform";
 
 export const runtime = "nodejs";
@@ -29,7 +29,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const built = buildCharacterBrief(
     { name: b.name ?? member.name, description: b.description ?? member.description, styleId: project.styleId },
-    HOUSE_STYLES.map((s) => s.id)
+    (await listStyles()).map((s) => s.id)
   );
   if (!built.ok) {
     return NextResponse.json(

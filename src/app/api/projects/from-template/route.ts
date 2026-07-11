@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createProject, saveProject } from "@/lib/project/store";
 import { instantiateTemplate } from "@/lib/project/fromTemplate";
 import { TEMPLATE_BY_ID } from "@/content/bookTemplates";
-import { HOUSE_STYLES } from "@/content/houseStyles";
+import { isValidStyleId } from "@/lib/styles/registry";
 import { screenFields } from "@/lib/safety/moderateFreeform";
 
 // Create a project from a book template (skin 2): the parent supplies only the
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   if (!template) return NextResponse.json({ error: "unknown template" }, { status: 400 });
 
   const styleId =
-    typeof b.styleId === "string" && HOUSE_STYLES.some((s) => s.id === b.styleId)
+    typeof b.styleId === "string" && (await isValidStyleId(b.styleId))
       ? b.styleId
       : template.defaultStyleId;
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createProject, saveProject } from "@/lib/project/store";
 import { beatsFromManuscript } from "@/lib/project/fromManuscript";
-import { HOUSE_STYLES } from "@/content/houseStyles";
+import { isValidStyleId } from "@/lib/styles/registry";
 import { screenFields } from "@/lib/safety/moderateFreeform";
 
 // Create a project from a pasted manuscript (skin 3 — indie authors): the
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   if (title.length === 0 || title.length > 80) {
     fields.title = { message: "Give the book a title (up to 80 characters)." };
   }
-  if (!HOUSE_STYLES.some((s) => s.id === styleId)) {
+  if (!(await isValidStyleId(styleId))) {
     fields.styleId = { message: "Choose an art style." };
   }
   const built = beatsFromManuscript(b.manuscript);

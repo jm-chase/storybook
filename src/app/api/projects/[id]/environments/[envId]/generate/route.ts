@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProject } from "@/lib/project/store";
 import { generateEnvironmentVariants } from "@/lib/art/generateEnvironmentVariants";
-import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
+import { getStyleById } from "@/lib/styles/registry";
 import { streamNdjson } from "@/lib/api/streamNdjson";
 
 export const runtime = "nodejs";
@@ -18,7 +18,7 @@ export async function POST(_req: Request, { params }: Params) {
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not configured on the server." }, { status: 500 });
   }
-  const style = HOUSE_STYLE_BY_ID[project.styleId];
+  const style = await getStyleById(project.styleId);
   if (!style) return NextResponse.json({ error: "project has an unknown style" }, { status: 500 });
 
   return streamNdjson(async (emitProgress) => {

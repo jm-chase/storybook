@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProject, readImage } from "@/lib/project/store";
 import { refineImageVariants, MAX_FIX_INSTRUCTION } from "@/lib/art/refineImage";
-import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
+import { getStyleById } from "@/lib/styles/registry";
 import { streamNdjson } from "@/lib/api/streamNdjson";
 import { screenFields } from "@/lib/safety/moderateFreeform";
 
@@ -44,7 +44,7 @@ export async function POST(req: Request, { params }: Params) {
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not configured on the server." }, { status: 500 });
   }
-  const style = HOUSE_STYLE_BY_ID[project.styleId];
+  const style = await getStyleById(project.styleId);
   if (!style) return NextResponse.json({ error: "project has an unknown style" }, { status: 500 });
 
   const img = await readImage(project.id, member.locked.file);

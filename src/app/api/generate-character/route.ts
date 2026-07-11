@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildCharacterBrief } from "@/lib/art/brief";
-import { HOUSE_STYLES, HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
+import { listStyles, getStyleById } from "@/lib/styles/registry";
 import { generateCharacterVariants } from "@/lib/art/generateCharacterVariants";
 import { streamNdjson } from "@/lib/api/streamNdjson";
 import { screenFields } from "@/lib/safety/moderateFreeform";
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   }
 
   const b = body as { name?: unknown; description?: unknown; styleId?: unknown };
-  const styleIds = HOUSE_STYLES.map((s) => s.id);
+  const styleIds = (await listStyles()).map((s) => s.id);
   const built = buildCharacterBrief(
     { name: b?.name, description: b?.description, styleId: String(b?.styleId ?? "") },
     styleIds
@@ -37,7 +37,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not configured on the server." }, { status: 500 });
   }
 
-  const style = HOUSE_STYLE_BY_ID[built.brief.styleId];
+  const style = await getStyleById(built.brief.styleId);
+  if (!style) return NextResponse.json({ error: "unknown style" }, { status: 400 });
   return streamNdjson(async (emitProgress) => {
     const result = await generateCharacterVariants(built.brief, style, { onEvent: emitProgress });
     if (result.variants.length === 0) {

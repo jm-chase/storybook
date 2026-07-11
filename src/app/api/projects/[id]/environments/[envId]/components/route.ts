@@ -5,7 +5,7 @@ import { withRetry } from "@/lib/art/retry";
 import { GEMINI_IMAGE_MODEL } from "@/lib/art/geminiProvider";
 import { runGate } from "@/lib/art/outputGate/runGate";
 import { safetyCheck, qualityCheck } from "@/lib/art/outputGate/checks";
-import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
+import { getStyleById } from "@/lib/styles/registry";
 
 // Derive a PARTS SHEET from a locked setting (2026-07-10): the location's key
 // objects drawn separately — furniture, structures, fixtures — so scene
@@ -30,7 +30,7 @@ export async function POST(_req: Request, { params }: Params) {
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not configured on the server." }, { status: 500 });
   }
-  const style = HOUSE_STYLE_BY_ID[project.styleId];
+  const style = await getStyleById(project.styleId);
   if (!style) return NextResponse.json({ error: "project has an unknown style" }, { status: 500 });
 
   const ref = await readImage(project.id, environment.locked.file);

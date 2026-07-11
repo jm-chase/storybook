@@ -4,7 +4,7 @@ import { PDFDocument } from "pdf-lib";
 import sharp from "sharp";
 import type { Project, StoryBeat } from "../project/types";
 import { readImage } from "../project/store";
-import { HOUSE_STYLE_BY_ID } from "../../content/houseStyles";
+import { getStyleById } from "../styles/registry";
 
 // Print PDF export (D-006 layer 1): one square page per beat — full-page art
 // with the text typeset in a soft panel (text is NEVER model-rendered, D-020).
@@ -126,16 +126,17 @@ function PodInteriorDocument({
   pages,
   gallery,
   padPages,
+  styleName,
 }: {
   project: Project;
   pages: PageArt[];
   gallery: GalleryEntry[];
   padPages: number;
+  styleName: string;
 }) {
   const bleed = BLEED;
   const page = TRIM + 2 * bleed;
   const hero = project.cast.find((c) => c.role === "hero");
-  const styleName = HOUSE_STYLE_BY_ID[project.styleId]?.name ?? project.styleId;
   const year = new Date().getFullYear();
   return (
     <Document title={project.title}>
@@ -225,16 +226,17 @@ export async function renderBookPdf(
     // Render, then VERIFY the page count: react-pdf silently wraps overflowing
     // sections (a big cast gallery) onto continuation pages, which would break
     // the even-count/spine math. One correction pass adjusts the padding.
+    const styleName = (await getStyleById(project.styleId))?.name ?? project.styleId;
     const target = interiorPageCount(project);
     let padPages = target - (2 + pages.length + 2);
-    let buf = await renderToBuffer(<PodInteriorDocument project={project} pages={pages} gallery={gallery} padPages={padPages} />);
+    let buf = await renderToBuffer(<PodInteriorDocument project={project} pages={pages} gallery={gallery} padPages={padPages} styleName={styleName} />);
     let count = (await PDFDocument.load(buf)).getPageCount();
     if (count !== target) {
       padPages += target - count;
       if (padPages < 0) {
         throw new Error(`POD interior overflows its page target (${count} rendered vs ${target}) — interiorPageCount needs updating for this book size.`);
       }
-      buf = await renderToBuffer(<PodInteriorDocument project={project} pages={pages} gallery={gallery} padPages={padPages} />);
+      buf = await renderToBuffer(<PodInteriorDocument project={project} pages={pages} gallery={gallery} padPages={padPages} styleName={styleName} />);
       count = (await PDFDocument.load(buf)).getPageCount();
       if (count !== target) throw new Error(`POD interior page count ${count} != target ${target} after correction.`);
     }

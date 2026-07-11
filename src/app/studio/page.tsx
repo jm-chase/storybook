@@ -13,6 +13,53 @@ import { CHARACTER_CHIPS, CHARACTER_HINT, SETTING_CHIPS, sceneChips } from "@/co
 // generate 3 clean options each (server-side, behind the Output Gate) → choose
 // → lock. Locked references persist to disk and drive every scene.
 
+// Styles now come from the registry (/api/styles): built-ins + the user's
+// custom styles minted from uploaded references. Module-level cache so every
+// component sees the same list; bumpStyles() refreshes after minting.
+let stylesCache: HouseStyleView[] | null = null;
+const stylesListeners = new Set<(s: HouseStyleView[]) => void>();
+
+interface HouseStyleView {
+  id: string;
+  name: string;
+  blurb: string;
+  promptFragment: string;
+  swatches: string[];
+  seedRefs: string[];
+  custom?: boolean;
+}
+
+async function fetchStyles(): Promise<HouseStyleView[]> {
+  try {
+    const d = await (await fetch("/api/styles")).json();
+    return Array.isArray(d.styles) && d.styles.length > 0 ? d.styles : HOUSE_STYLES;
+  } catch {
+    return HOUSE_STYLES;
+  }
+}
+
+function useStyles(): [HouseStyleView[], () => Promise<void>] {
+  const [styles, setStyles] = useState<HouseStyleView[]>(stylesCache ?? HOUSE_STYLES);
+  useEffect(() => {
+    stylesListeners.add(setStyles);
+    if (!stylesCache) {
+      void fetchStyles().then((s) => {
+        stylesCache = s;
+        stylesListeners.forEach((l) => l(s));
+      });
+    }
+    return () => {
+      stylesListeners.delete(setStyles);
+    };
+  }, []);
+  const refresh = async () => {
+    const s = await fetchStyles();
+    stylesCache = s;
+    stylesListeners.forEach((l) => l(s));
+  };
+  return [styles, refresh];
+}
+
 const ROLE_META: Record<CastRole, { label: string; emoji: string }> = {
   hero: { label: "Hero", emoji: "🌟" },
   sidekick: { label: "Sidekick", emoji: "🐾" },
@@ -101,6 +148,7 @@ function Picker({
   onOpen: (id: string) => void;
   onCreated: (p: Project) => void;
 }) {
+  const [styles] = useStyles();
   const [title, setTitle] = useState("");
   const [styleId, setStyleId] = useState(HOUSE_STYLES[0].id);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -145,7 +193,7 @@ function Picker({
               <div key={p.id} style={card(false)} onClick={() => onOpen(p.id)}>
                 <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{p.title}</div>
                 <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>
-                  {HOUSE_STYLE_BY_ID[p.styleId]?.name ?? p.styleId} · {p.lockedCount}/{p.castCount} cast locked
+                  {(stylesCache ?? HOUSE_STYLES).find((s) => s.id === p.styleId)?.name ?? p.styleId} · {p.lockedCount}/{p.castCount} cast locked
                 </div>
               </div>
             ))}
@@ -155,6 +203,8 @@ function Picker({
       {loading && <p style={{ fontSize: "0.8rem", opacity: 0.6 }}>Loading your books…</p>}
 
       <PromptSection onCreated={onCreated} />
+
+      <StyleGallerySection />
 
       <TemplateSection onCreated={onCreated} />
 
@@ -172,7 +222,7 @@ function Picker({
         </label>
         <p style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0 0 0.5rem" }}>Art style (one per book)</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-          {HOUSE_STYLES.map((s) => (
+          {styles.map((s) => (
             <div key={s.id} style={card(s.id === styleId)} onClick={() => setStyleId(s.id)}>
               <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
                 {s.swatches.map((c) => (
@@ -198,6 +248,7 @@ function Picker({
 /* ---------------- Illustrate a manuscript (skin 3, authors) ---------------- */
 
 function ManuscriptSection({ onCreated }: { onCreated: (p: Project) => void }) {
+  const [styles] = useStyles();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [styleId, setStyleId] = useState(HOUSE_STYLES[0].id);
@@ -248,7 +299,7 @@ function ManuscriptSection({ onCreated }: { onCreated: (p: Project) => void }) {
           <label style={{ display: "block", marginBottom: "0.5rem" }}>
             <span style={labelText}>Art style</span>
             <select value={styleId} onChange={(e) => setStyleId(e.target.value)} style={inputStyle(!!errors.styleId)}>
-              {HOUSE_STYLES.map((s) => (
+              {styles.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} — {s.blurb}
                 </option>
@@ -281,8 +332,184 @@ function ManuscriptSection({ onCreated }: { onCreated: (p: Project) => void }) {
 
 /* ---------------- Start from a template (skin 2) ---------------- */
 
+/** The style gallery (2026-07-11): see what each style REALLY looks like —
+ * its plate, element vocabulary, and gallery pieces — and mint NEW styles
+ * from your own reference images (rights attestation + safety screen). */
+function StyleGallerySection() {
+  const [styles, refreshStyles] = useStyles();
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  return (
+    <section style={{ marginTop: "1.5rem" }}>
+      <p style={{ fontSize: "0.85rem", fontWeight: 600 }}>🎨 The art styles</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.6rem" }}>
+        {styles.map((s) => (
+          <div key={s.id} style={{ ...card(openId === s.id) }} onClick={() => setOpenId(openId === s.id ? null : s.id)}>
+            <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+              {s.swatches.map((c) => (
+                <span key={c} style={{ width: 16, height: 16, borderRadius: 5, background: c, display: "inline-block" }} />
+              ))}
+            </div>
+            <div style={{ fontWeight: 700, fontSize: "0.88rem" }}>
+              {s.name}
+              {s.custom && <span style={{ fontSize: "0.62rem", fontWeight: 800, color: "var(--accent-deep)", marginLeft: 6 }}>YOURS</span>}
+            </div>
+            <div style={{ fontSize: "0.72rem", opacity: 0.7 }}>{s.blurb}</div>
+            {s.seedRefs[0] && (
+              <img
+                src={`/api/styles/${s.id}/asset/${s.seedRefs[0]}`}
+                alt={`${s.name} plate`}
+                style={{ width: "100%", borderRadius: 8, marginTop: 6, display: "block" }}
+              />
+            )}
+            {openId === s.id && <StylePreview style={s} />}
+          </div>
+        ))}
+        <CreateStyleCard onCreated={refreshStyles} />
+      </div>
+    </section>
+  );
+}
+
+function StylePreview({ style }: { style: HouseStyleView }) {
+  const galleryFiles = style.custom
+    ? ["ref-1.jpg", "ref-2.jpg", "ref-3.jpg"]
+    : [`${style.id}-g1.jpg`, `${style.id}-g2.jpg`];
+  return (
+    <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>
+      <div style={{ fontSize: "0.66rem", fontWeight: 800, textTransform: "uppercase", opacity: 0.5 }}>
+        {style.custom ? "your references" : "gallery"}
+      </div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+        {galleryFiles.map((f) => (
+          <img
+            key={f}
+            src={`/api/styles/${style.id}/asset/${f}`}
+            alt=""
+            onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+            style={{ width: 88, height: 88, objectFit: "cover", borderRadius: 8 }}
+          />
+        ))}
+      </div>
+      {style.seedRefs[1] && (
+        <>
+          <div style={{ fontSize: "0.66rem", fontWeight: 800, textTransform: "uppercase", opacity: 0.5, marginTop: 6 }}>
+            element vocabulary
+          </div>
+          <img
+            src={`/api/styles/${style.id}/asset/${style.seedRefs[1]}`}
+            alt="elements"
+            style={{ width: "100%", borderRadius: 8, marginTop: 4 }}
+          />
+        </>
+      )}
+      <div style={{ fontSize: "0.66rem", opacity: 0.55, marginTop: 6, fontStyle: "italic" }}>{style.promptFragment}</div>
+    </div>
+  );
+}
+
+/** Mint a custom style from the user's own images. */
+function CreateStyleCard({ onCreated }: { onCreated: () => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [files, setFiles] = useState<string[]>([]);
+  const [attested, setAttested] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  function onPick(list: FileList | null) {
+    if (!list) return;
+    const readers = Array.from(list)
+      .slice(0, 3)
+      .map(
+        (f) =>
+          new Promise<string>((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(String(r.result));
+            r.onerror = reject;
+            r.readAsDataURL(f);
+          })
+      );
+    void Promise.all(readers).then(setFiles).catch(() => setError("Could not read those files."));
+  }
+
+  async function create() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/styles", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, imageDataUrls: files, attestation: attested }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setError(d.error ?? "Could not mint the style.");
+        return;
+      }
+      await onCreated();
+      setOpen(false);
+      setFiles([]);
+      setName("");
+      setAttested(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <div
+        style={{ ...card(false), display: "flex", alignItems: "center", justifyContent: "center", minHeight: 140 }}
+        onClick={() => setOpen(true)}
+      >
+        <span style={{ fontSize: "0.85rem", fontWeight: 600, opacity: 0.7, textAlign: "center" }}>
+          ＋ New style
+          <br />
+          <span style={{ fontSize: "0.68rem", fontWeight: 400 }}>from your own images</span>
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div style={{ ...card(true), cursor: "default", gridColumn: "span 2", minWidth: 260 }} onClick={(e) => e.stopPropagation()}>
+      <p style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0 0 0.4rem" }}>Mint a style from your images</p>
+      <p style={{ fontSize: "0.7rem", opacity: 0.65, margin: "0 0 0.5rem" }}>
+        Upload 1&ndash;3 images you own. The studio derives a technique-only definition, then builds the style&apos;s
+        plate and element vocabulary so it works exactly like a built-in.
+      </p>
+      <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(e) => onPick(e.target.files)} style={{ fontSize: "0.75rem" }} />
+      {files.length > 0 && (
+        <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+          {files.map((f, i) => (
+            <img key={i} src={f} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8 }} />
+          ))}
+        </div>
+      )}
+      <label style={{ display: "block", marginTop: 8 }}>
+        <span style={labelText}>Style name (optional)</span>
+        <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} style={inputStyle(false)} />
+      </label>
+      <label style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 8, fontSize: "0.72rem" }}>
+        <input type="checkbox" checked={attested} onChange={(e) => setAttested(e.target.checked)} style={{ marginTop: 2 }} />
+        <span>I own these images or have the rights to use them as style references.</span>
+      </label>
+      {error && <Err>{error}</Err>}
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <button onClick={create} disabled={busy || files.length === 0 || !attested} style={btn(true)}>
+          {busy ? "🎨 Minting (about a minute)…" : "🎨 Mint the style"}
+        </button>
+        <button onClick={() => setOpen(false)} style={btn(false)}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** Prompt-to-storyboard (PRD #1): premise in, ready-to-illustrate book out. */
 function PromptSection({ onCreated }: { onCreated: (p: Project) => void }) {
+  const [promptStyles] = useStyles();
   const [open, setOpen] = useState(false);
   const [premise, setPremise] = useState("");
   const [heroName, setHeroName] = useState("");
@@ -373,7 +600,7 @@ function PromptSection({ onCreated }: { onCreated: (p: Project) => void }) {
             <label>
               <span style={labelText}>Art style</span>
               <select value={styleId} onChange={(e) => setStyleId(e.target.value)} style={inputStyle(false)}>
-                {HOUSE_STYLES.map((s) => (
+                {promptStyles.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
@@ -498,7 +725,8 @@ function ProjectView({
   onProject: (p: Project) => void;
   onBack: () => void;
 }) {
-  const style = HOUSE_STYLE_BY_ID[project.styleId];
+  const [allStyles] = useStyles();
+  const style = allStyles.find((s) => s.id === project.styleId);
   const [section, setSection] = useState<SectionId>("overview");
   // The member currently in the generate→choose→lock workspace.
   const [activeId, setActiveId] = useState<string | null>(null);

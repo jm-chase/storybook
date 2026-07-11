@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getProject, saveProject, saveCastImage, readImage } from "@/lib/project/store";
 import { extractManifest } from "@/lib/art/manifest";
 import { deriveCharacterCard } from "@/lib/art/characterCard";
-import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
+import { getStyleById } from "@/lib/styles/registry";
 
 // Compile an already-locked character (settei backfill): extract the
 // feature/wardrobe manifest and derive the character card for cast members
@@ -22,7 +22,7 @@ export async function POST(_req: Request, { params }: Params) {
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not configured on the server." }, { status: 500 });
   }
-  const style = HOUSE_STYLE_BY_ID[project.styleId];
+  const style = await getStyleById(project.styleId);
   if (!style) return NextResponse.json({ error: "project has an unknown style" }, { status: 500 });
 
   const img = await readImage(project.id, member.locked.file);

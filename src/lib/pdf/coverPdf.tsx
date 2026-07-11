@@ -3,7 +3,7 @@ import { Document, Page, View, Text, Image, renderToBuffer } from "@react-pdf/re
 import sharp from "sharp";
 import type { Project } from "../project/types";
 import { readImage } from "../project/store";
-import { HOUSE_STYLE_BY_ID } from "../../content/houseStyles";
+import { getStyleById } from "../styles/registry";
 import { TRIM, BLEED, interiorPageCount } from "./bookPdf";
 
 // Wraparound POD cover (B-9): ONE landscape spread — back panel, spine, front
@@ -39,15 +39,16 @@ function CoverDocument({
   front,
   spine,
   accent,
+  styleName,
 }: {
   project: Project;
   front?: PdfImage;
   spine: number;
   accent: string;
+  styleName: string;
 }) {
   const height = TRIM + 2 * BLEED;
   const width = 2 * (TRIM + BLEED) + spine;
-  const styleName = HOUSE_STYLE_BY_ID[project.styleId]?.name ?? project.styleId;
   return (
     <Document title={`${project.title} — cover`}>
       <Page size={[width, height]} style={{ backgroundColor: accent, flexDirection: "row" }}>
@@ -94,7 +95,9 @@ export async function renderCoverPdf(project: Project, root?: string): Promise<B
 
   // Cover ground colour: the house style's first swatch keeps the cover
   // on-brand for the chosen style without another generation.
-  const accent = HOUSE_STYLE_BY_ID[project.styleId]?.swatches[0] ?? "#c2724f";
+  const style = await getStyleById(project.styleId);
+  const accent = style?.swatches[0] ?? "#c2724f";
+  const styleName = style?.name ?? project.styleId;
 
   // Print the front image at 300 DPI for its displayed size.
   if (front) {
@@ -104,5 +107,5 @@ export async function renderCoverPdf(project: Project, root?: string): Promise<B
     };
   }
 
-  return renderToBuffer(<CoverDocument project={project} front={front} spine={spine} accent={accent} />);
+  return renderToBuffer(<CoverDocument project={project} front={front} spine={spine} accent={accent} styleName={styleName} />);
 }

@@ -4,7 +4,7 @@ import { generateStandaloneScene } from "@/lib/art/geminiProvider";
 import { getStyleSeed, getElementSheet } from "@/lib/art/styleSeed";
 import { runGate } from "@/lib/art/outputGate/runGate";
 import { safetyCheck, qualityCheck } from "@/lib/art/outputGate/checks";
-import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
+import { getStyleById } from "@/lib/styles/registry";
 import { screenFields } from "@/lib/safety/moderateFreeform";
 import { COST_PER_IMAGE_USD } from "@/lib/art/cost";
 
@@ -45,7 +45,7 @@ export async function POST(req: Request, { params }: Params) {
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not configured on the server." }, { status: 500 });
   }
-  const style = HOUSE_STYLE_BY_ID[project.styleId];
+  const style = await getStyleById(project.styleId);
   if (!style) return NextResponse.json({ error: "project has an unknown style" }, { status: 500 });
 
   const styleSeed = (await getStyleSeed(style)) ?? undefined;

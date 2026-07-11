@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProject, saveProject } from "@/lib/project/store";
-import { HOUSE_STYLES } from "@/content/houseStyles";
+import { isValidStyleId } from "@/lib/styles/registry";
 import { screenFields } from "@/lib/safety/moderateFreeform";
 import { sanitizeBible } from "@/lib/project/bible";
 
@@ -88,7 +88,7 @@ export async function PATCH(req: Request, { params }: Params) {
     project.title = title;
   }
   if (typeof b.styleId === "string" && b.styleId !== project.styleId) {
-    if (!HOUSE_STYLES.some((s) => s.id === b.styleId)) {
+    if (!(await isValidStyleId(b.styleId))) {
       return NextResponse.json({ error: "validation", fields: { styleId: { message: "Unknown art style." } } }, { status: 400 });
     }
     if (project.cast.some((c) => c.locked)) {

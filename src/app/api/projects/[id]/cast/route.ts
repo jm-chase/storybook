@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProject, saveProject, newId } from "@/lib/project/store";
 import { buildCharacterBrief } from "@/lib/art/brief";
-import { HOUSE_STYLES } from "@/content/houseStyles";
+import { listStyles } from "@/lib/styles/registry";
 import { CAST_ROLES, type CastMember, type CastRole } from "@/lib/project/types";
 import { screenFields } from "@/lib/safety/moderateFreeform";
 
@@ -36,7 +36,7 @@ export async function POST(req: Request, { params }: Params) {
 
   const built = buildCharacterBrief(
     { name: b.name, description: b.description, styleId: project.styleId },
-    HOUSE_STYLES.map((s) => s.id)
+    (await listStyles()).map((s) => s.id)
   );
   if (!built.ok) Object.assign(fields, Object.fromEntries(Object.entries(built.errors).map(([k, m]) => [k, { message: m }])));
   if (Object.keys(fields).length > 0) {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getProject, saveProject, saveCastImage } from "@/lib/project/store";
 import { extractManifest } from "@/lib/art/manifest";
 import { deriveCharacterCard } from "@/lib/art/characterCard";
-import { HOUSE_STYLE_BY_ID } from "@/content/houseStyles";
+import { getStyleById } from "@/lib/styles/registry";
 
 // Lock a cast member: persist the chosen variant as the character's permanent
 // reference image (D-015 — generated once, then frozen), then COMPILE the
@@ -53,7 +53,7 @@ export async function POST(req: Request, { params }: Params) {
     console.warn(`[lock] manifest extraction failed for ${member.name}: ${(e as Error).message.slice(0, 120)}`);
   }
   try {
-    const style = HOUSE_STYLE_BY_ID[project.styleId];
+    const style = await getStyleById(project.styleId);
     if (style) {
       const card = await deriveCharacterCard({
         refBase64: base64,

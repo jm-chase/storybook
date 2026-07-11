@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createProject, listProjects } from "@/lib/project/store";
-import { HOUSE_STYLES } from "@/content/houseStyles";
+import { isValidStyleId } from "@/lib/styles/registry";
 import { screenFields } from "@/lib/safety/moderateFreeform";
 
 // Project collection: list + create (R-6). Server-side filesystem store; the
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   if (title.length === 0 || title.length > 80) {
     fields.title = { message: "Give the book a title (up to 80 characters)." };
   }
-  if (!HOUSE_STYLES.some((s) => s.id === styleId)) {
+  if (!(await isValidStyleId(styleId))) {
     fields.styleId = { message: "Choose an art style." };
   }
   if (Object.keys(fields).length > 0) {
