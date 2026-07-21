@@ -60,6 +60,14 @@ export interface EnvironmentSetting {
    * (the "stickers on a backdrop" fix).
    */
   components?: LockedImage;
+  /**
+   * Landmark manifest (2026-07-20): the 2-4 identifying features of this
+   * place, extracted at lock time — same fix as CastMember.manifest one level
+   * up. Scenes state it as a MUST-MATCH anchor; everything else about the
+   * setting (camera angle, framing, incidental foreground) stays free, which
+   * is what recompose-from-parts requires.
+   */
+  manifest?: { landmarks: string[] };
 }
 
 /** Production metadata for a page/panel (storyboard tooling — PRD 2026-07-09).

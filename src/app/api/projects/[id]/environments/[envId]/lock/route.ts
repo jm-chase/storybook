@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { getProject, saveProject, saveEnvironmentImage } from "@/lib/project/store";
+import { extractEnvironmentManifest } from "@/lib/art/manifest";
 
 // Lock a setting's reference (same v1 pattern + hosted caveat as cast/beat
-// locks: client posts the winning gate-passed data-URL).
+// locks: client posts the winning gate-passed data-URL), then extract its
+// LANDMARK manifest (2026-07-20, settei-for-places) — best-effort, same as
+// the cast lock's manifest/card compile: a failure here never fails the lock.
 
 export const runtime = "nodejs";
 
@@ -31,6 +34,13 @@ export async function POST(req: Request, { params }: Params) {
 
   const file = await saveEnvironmentImage(project.id, environment.id, base64, mimeType);
   environment.locked = { file, mimeType, lockedAt: new Date().toISOString() };
+
+  try {
+    environment.manifest = await extractEnvironmentManifest(base64, mimeType, environment.description);
+  } catch (e) {
+    console.warn(`[lock] environment manifest extraction failed for ${environment.name}: ${(e as Error).message.slice(0, 120)}`);
+  }
+
   const saved = await saveProject(project);
   return NextResponse.json({ project: saved });
 }

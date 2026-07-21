@@ -58,9 +58,25 @@ const STYLE_SEED_LABEL =
 const SETTING_LABEL =
   "the SETTING — the scene takes place in this location. Treat this reference as the location's PARTS and " +
   "MATERIALS (its furniture, structures, surfaces, colours, and layout logic), NOT as a fixed backdrop: " +
-  "REBUILD the space from whatever angle and distance the action needs, keeping every part recognizably the " +
-  "same. Respect the space's physical logic — indoor floors stay indoor floors, doors open where doors are, " +
-  "furniture keeps its real size";
+  "REBUILD the space from whatever angle and distance the action needs. Respect the space's physical logic — " +
+  "indoor floors stay indoor floors, doors open where doors are, furniture keeps its real size";
+
+// Landmark manifest (2026-07-20): holding the WHOLE plate rigid across a big
+// angle change fights the recompose instruction above — that's what produced
+// a location's one identifying rock formation getting redrawn as a generic
+// mound in a dramatic close-up (James: "the cliff edge changed slightly" p1
+// vs p2, same setting). Naming the 2-4 things that ARE the place, and saying
+// plainly that everything else is free, is the same fix as the character
+// manifest one level up.
+function settingLabel(env: { manifest?: { landmarks: string[] } }): string {
+  if (!env.manifest || env.manifest.landmarks.length === 0) return SETTING_LABEL;
+  return (
+    SETTING_LABEL +
+    `. This place's LANDMARKS — MUST MATCH exactly, however the camera is angled: ` +
+    `${env.manifest.landmarks.join("; ")}. Everything else about the setting (camera angle, framing, ` +
+    `incidental foreground rocks/plants/clouds) is free to vary shot to shot`
+  );
+}
 
 const SETTING_PARTS_LABEL =
   "a PARTS SHEET of the same setting — the location's individual objects drawn separately so you can " +
@@ -196,6 +212,8 @@ export interface EnvironmentRef {
   mimeType: string;
   /** Optional parts sheet (component breakdown) of the same setting. */
   parts?: { base64: string; mimeType: string };
+  /** Landmark checklist (settei for places) — stated in the prompt. */
+  manifest?: { landmarks: string[] };
 }
 
 /** A scene with NO cast (establishing shot / environment page). */
@@ -218,7 +236,7 @@ export async function generateStandaloneScene(args: {
   if (args.styleSeed) refs.push({ label: STYLE_SEED_LABEL, ...args.styleSeed });
   if (args.elementSheet) refs.push({ label: ELEMENT_VOCAB_LABEL, ...args.elementSheet });
   if (args.environment) {
-    refs.push({ label: SETTING_LABEL, base64: args.environment.base64, mimeType: args.environment.mimeType });
+    refs.push({ label: settingLabel(args.environment), base64: args.environment.base64, mimeType: args.environment.mimeType });
     if (args.environment.parts) refs.push({ label: SETTING_PARTS_LABEL, ...args.environment.parts });
   }
   const { labels, parts } = labeled(refs);
@@ -290,7 +308,7 @@ export async function generateMultiCharacterScene(args: {
   if (elementSheet) refs.push({ label: ELEMENT_VOCAB_LABEL, ...elementSheet });
   for (const c of characters) refs.push({ label: characterLabel(c), base64: c.base64, mimeType: c.mimeType });
   if (environment) {
-    refs.push({ label: SETTING_LABEL, base64: environment.base64, mimeType: environment.mimeType });
+    refs.push({ label: settingLabel(environment), base64: environment.base64, mimeType: environment.mimeType });
     if (environment.parts) refs.push({ label: SETTING_PARTS_LABEL, ...environment.parts });
   }
   const { labels, parts } = labeled(refs);
