@@ -6,13 +6,14 @@ export default function Home() {
       </h1>
       <p style={{ fontSize: "1.05rem", lineHeight: 1.6 }}>
         A parent-authored, AI-assisted personalized children&apos;s storybook
-        generator. The wizard, generation pipeline, safety checks, and
-        print-ready PDF export are being built. This page is the scaffold
-        placeholder.
+        generator. Tell it your idea and it writes the story, then guides you
+        step by step through illustrating every page — cast, settings, and
+        pages all staying on-model, behind real safety checks, ending in a
+        print-ready PDF.
       </p>
       <p style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>
         <a
-          href="/studio"
+          href="/new"
           style={{
             display: "inline-block",
             padding: "0.6rem 1.1rem",
@@ -24,10 +25,13 @@ export default function Home() {
             marginRight: "0.75rem",
           }}
         >
-          Open the character studio →
+          Make a book →
+        </a>
+        <a href="/studio" style={{ fontSize: "0.9rem", color: "#c2724f", marginRight: "0.75rem" }}>
+          (or the full studio)
         </a>
         <a href="/preview" style={{ fontSize: "0.9rem", color: "#c2724f" }}>
-          (or the prose book preview)
+          (or the prose preview)
         </a>
       </p>
 
